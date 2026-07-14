@@ -85,10 +85,12 @@ and transport security is a deployment concern. HTTPS termination is
 handled at deployment time and is intentionally kept out of the
 application-domain architecture.
 
-The frontend and backend meet at a small, versioned contract to be
-finalized in the next task. Nothing above the "Typed frontend API
-boundary" line assumes anything about the transport, and the arithmetic
-domain deliberately does not import HTTP types.
+The frontend and backend meet at a small, versioned contract defined in
+[`docs/calculator-contract.md`](./calculator-contract.md) (single
+`POST /api/v1/calculations` resource plus `GET /healthz`). Nothing above
+the "Typed frontend API boundary" line assumes anything about the
+transport, and the arithmetic domain deliberately does not import HTTP
+types.
 
 ## Principles
 
@@ -157,9 +159,10 @@ feature will replace it under `apps/web/src/features/calculator/`.
 - Normalization of every failure into an `ApiError` with a `kind` in
   `network | aborted | invalidResponse | apiError | unknown`.
 
-There are no retries, no caching, and no calculator-specific
-request/response types yet. Domain contracts will be added when the
-API contract is frozen.
+There are no retries and no caching. Calculator-specific request/response
+types and the calculator API function will be added by a downstream task
+against the accepted contract in
+[`docs/calculator-contract.md`](./calculator-contract.md).
 
 ## Backend workspace
 

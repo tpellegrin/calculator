@@ -3,11 +3,12 @@
 Go workspace for the Calculator HTTP API.
 
 This directory establishes the intended backend boundary. **No arithmetic
-domain and no HTTP transport are implemented yet.** The next task will
-define the arithmetic contract, the request/response schema, the error
-taxonomy, and the domain API.
-
-Upcoming tasks follow the [delivery workflow](../../docs/delivery-workflow.md).
+domain and no HTTP transport are implemented yet.** The accepted contract
+that governs both layers is
+[`docs/calculator-contract.md`](../../docs/calculator-contract.md); the
+Go domain, HTTP boundary, and server lifecycle are authored as separate
+tasks under [`docs/tasks/`](../../docs/tasks/README.md) and follow the
+[delivery workflow](../../docs/delivery-workflow.md).
 
 ## Module
 
@@ -70,8 +71,9 @@ responses.
 - Runtime fake responses
 - Client SDKs generated from the API
 
-## Next task
+## Next tasks
 
-Define the arithmetic semantics, operation arities, numeric policy, REST
-request/response contract, stable error taxonomy, and Go domain API
-before implementing either layer.
+Runtime implementation is broken into three bounded tasks against the
+accepted contract: the Go arithmetic domain (`internal/calculator`), the
+Go HTTP boundary (`internal/httpapi`), and the server lifecycle
+(`cmd/server`). See [`docs/tasks/`](../../docs/tasks/README.md).

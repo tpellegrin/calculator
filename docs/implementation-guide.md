@@ -12,10 +12,17 @@ Code changes are executed through the task and review process defined in [docs/d
 
 ## Add calculator behavior
 
+The accepted calculator semantics, REST contract, and error taxonomy are
+frozen in
+[`docs/calculator-contract.md`](./calculator-contract.md). New operations
+or changes to existing behavior require an explicit owner decision that
+updates that document **before** any code changes.
+
 Adding or changing calculator behavior is a **full-stack** change.
 Follow this sequence:
 
-1. Define or update the arithmetic semantics in `docs/` (operation
+1. Update the accepted contract in
+   [`docs/calculator-contract.md`](./calculator-contract.md) (operation
    identifier, arity, numeric policy, error taxonomy, examples).
 2. Update the Go domain in `apps/api/internal/calculator/` (pure
    function + tests, no HTTP concerns).

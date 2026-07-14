@@ -18,9 +18,11 @@ raw `fetch` in components.
 
 - The client is **transport-generic**. It has no calculator endpoints,
   request shapes, response shapes, or server error codes.
-- The **calculator contract is not yet finalized**. Domain types
-  (operations, operands, results, error taxonomy) will be added alongside
-  the first real endpoint, in the same change as the contract document.
+- The **calculator contract is accepted** at
+  [`docs/calculator-contract.md`](../../../../docs/calculator-contract.md).
+  Domain types (operations, operands, results, error taxonomy) will be
+  added by a downstream task alongside the first real endpoint call
+  (`POST /api/v1/calculations`).
 - Errors from any endpoint should normalize into application-owned types
   built on top of `ApiError` — do not leak raw `Response` objects into UI
   components.

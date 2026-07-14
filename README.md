@@ -14,12 +14,17 @@ domain package rather than being repeated in the browser.
 
 ## Project status
 
-The repository structure and frontend foundation are in place.
+The repository structure, frontend foundation, and the accepted calculator
+contract are in place.
 
 - The React application lives in `apps/web`.
 - The Go workspace lives in `apps/api`.
-- The calculator behavior and REST contract are the next pieces to be defined
-  and implemented.
+- The calculator semantics, REST contract, error taxonomy, and interaction
+  model are defined in
+  [`docs/calculator-contract.md`](./docs/calculator-contract.md).
+- Runtime implementation of the calculator (Go domain, Go HTTP, frontend
+  feature) is authored as a sequence of tasks under
+  [`docs/tasks/`](./docs/tasks/README.md).
 
 ## Architecture
 
@@ -139,6 +144,8 @@ The full process is documented in
 
 ## Documentation
 
+- [`docs/calculator-contract.md`](./docs/calculator-contract.md) - accepted
+  authority for calculator semantics and REST contract.
 - [`docs/architecture.md`](./docs/architecture.md) - current structure and
   target architecture.
 - [`docs/frontend-foundation.md`](./docs/frontend-foundation.md) - decisions
@@ -163,7 +170,8 @@ The full process is documented in
 
 ## Not implemented yet
 
-- Calculator operation semantics
-- REST request and response contract
+The accepted contract is documented; runtime implementation is authored
+as tasks under [`docs/tasks/`](./docs/tasks/README.md).
+
 - Go HTTP server
 - React calculator interface
