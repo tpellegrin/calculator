@@ -89,7 +89,11 @@ Numeric rules from §5 apply to every operation.
 ### 4.3 `sqrt`
 
 - Domain: `x ≥ 0`. `sqrt([negative]) → math_domain`.
-- `sqrt([0]) → 0` (normalized to positive zero per §5.4).
+  Negative operands are rejected by a structural guard **before**
+  invoking `math.Sqrt`.
+- `sqrt([0]) → 0` (normalized to positive zero per §5.4). Note
+  IEEE-754 defines `sqrt(-0) = -0`; the domain normalizes the sign of
+  a successful zero result before it becomes observable (§5.4).
 - `sqrt([2]) → 1.4142135623730951`.
 
 ### 4.4 `percentage`
@@ -116,11 +120,44 @@ Base cases and edge rules:
   (would be complex): `power([-2, 0.5]) → math_domain`.
 - Negative exponent is supported when the result is finite:
   `power([2, -2]) → 0.25`.
-- `power([0, -1]) → math_domain` (zero to a negative exponent).
+- `power([0, -1]) → math_domain` (zero to a negative exponent). This
+  case must be classified by an explicit structural guard **before**
+  invoking `math.Pow`, because Go's `math.Pow(0, y)` with finite `y < 0`
+  returns `+Inf`, which the naive post-arithmetic classifier would
+  otherwise mis-map to `numeric_overflow`.
 - Overflow (`|result|` exceeds finite `float64` range) returns
   `numeric_overflow`: `power([10, 1000]) → numeric_overflow`.
 - Complex results are unsupported; the domain never returns imaginary
   values.
+
+**Integer-exponent predicate.** For `power`, the exponent `y` is
+treated as an integer iff `math.Trunc(y) == y`. Because operands are
+already required to be finite (§5.2), the equivalent explicit form is
+`math.Trunc(y) == y && !math.IsInf(y, 0)`. This is exact float64
+classification — it is not a tolerance-based test. Therefore:
+
+- `3.0` is integer;
+- `3.0000000000000004` (the next representable float64 above `3.0`) is
+  not integer, so `power([-2, 3.0000000000000004]) → math_domain`.
+
+At magnitudes where binary64 cannot represent adjacent integers (for
+example `|y| ≥ 2^53`), the represented finite value is still classified
+by the same predicate and the result remains subject to §5.2
+finiteness classification.
+
+**Classification ordering for `power`.** Domain guards run before
+`math.Pow`; the finite/overflow classifier of §5.2 applies only after
+the guards permit the call:
+
+1. If `base < 0` and the exponent is not integer per the predicate
+   above → `math_domain`.
+2. If `base == 0` (positive or negative zero) and `exponent < 0` →
+   `math_domain`.
+3. Otherwise invoke `math.Pow`. A finite result is success. A
+   non-finite result is classified by §5.2 (`+Inf`/`-Inf` from finite
+   inputs → `numeric_overflow`; an unexpected `NaN` from an otherwise
+   unguarded domain case → `math_domain`, though every known domain
+   case is guarded above).
 
 ## 5. Numeric policy
 
@@ -134,11 +171,20 @@ Base cases and edge rules:
 
 ### 5.2 Finite-value policy
 
-- Operands must be **finite** JSON numbers. `NaN` and `±Infinity` are
-  not representable in JSON and are rejected structurally at decode.
+- Operands must be **finite** JSON numbers. `NaN`, `Infinity`, and
+  `-Infinity` are not valid JSON tokens per RFC 8259 §6 and are
+  rejected structurally by the JSON parser before any DTO decoding
+  occurs. The resulting HTTP outcome is **`400 invalid_json`**, not
+  `invalid_request`. Stringified non-finite values (`"NaN"`,
+  `"Infinity"`), `null`, booleans, arrays, objects, and other
+  wrong-typed operand elements are valid JSON but invalid request
+  representations and return **`400 invalid_request`** (see §7).
 - Results must be finite. Non-finite results map to `math_domain`
   (mathematically undefined, e.g. `sqrt(-1)`) or `numeric_overflow`
-  (finite math but exceeded `float64`).
+  (finite math but exceeded `float64`). Operation-specific structural
+  guards run **before** the underlying floating-point call (see §4.3
+  and §4.5); the finite/non-finite classifier only applies to results
+  those guards permitted.
 
 ### 5.3 No backend presentation rounding
 
@@ -152,13 +198,19 @@ Base cases and edge rules:
   before encoding (`-0 → 0`).
 - Zero operands are echoed back in responses normalized to positive
   zero.
-- Internal arithmetic may transit `-0`; the observable contract shows
-  only `0`.
+- Internal arithmetic may transit `-0` (notably `math.Sqrt(-0) = -0`
+  under IEEE-754); the observable contract shows only `0`.
+- Ownership: the Go domain exports a `NormalizeZero(float64) float64`
+  helper. The domain calls it on every successful result before
+  returning; the HTTP layer calls the same helper on every echoed
+  operand and on the returned result before encoding. Successful and
+  echoed zeros therefore share one normalization implementation.
 
 ### 5.5 Frontend display
 
 - Localized via `Intl.NumberFormat` bound to the active locale.
-- Precision cap: **up to 15 significant digits**.
+- Precision cap: **up to 15 significant digits**. Unnecessary trailing
+  zeros are omitted (for example `2.5`, not `2.500000000000000`).
 - Scientific notation is used for extreme magnitudes when normal
   notation would be misleading or unwieldy (the threshold is a
   frontend implementation choice, documented in the calculator feature).
@@ -170,13 +222,17 @@ Base cases and edge rules:
 ### 6.1 Endpoints
 
 - `POST /api/v1/calculations` — perform one calculation.
-- `GET  /healthz` — liveness probe. Returns `200 OK` with a small,
-  stable JSON body. Not versioned.
+- `GET  /healthz` — liveness probe. Returns `200 OK` with exactly the
+  JSON body `{"status":"ok"}` (`Content-Type: application/json;
+  charset=utf-8`, `Cache-Control: no-store`). Not versioned.
 
 Any other method on `/api/v1/calculations` returns `405
 method_not_allowed` with an `Allow: POST` header.
 Any other method on `/healthz` returns `405 method_not_allowed` with an
 `Allow: GET` header. Any other path returns `404 not_found`.
+
+Every `405` response must carry the standard error envelope (§6.4) and
+the project header discipline (§9); see §11 for boundary ownership.
 
 ### 6.2 Request
 
@@ -229,25 +285,39 @@ Every non-2xx response uses the project-owned envelope:
 
 ## 7. Validation rules
 
-The HTTP boundary enforces these before the domain is invoked:
+The HTTP boundary enforces these before the domain is invoked.
+
+Rules 1–2 are enforced by explicit gates. Rules 3–8 are enforced by a
+single `json.Decoder` pipeline reading through `http.MaxBytesReader`;
+their codes are chosen by inspecting the returned error type (see
+T-003). `http.MaxBytesReader` does not pre-scan the body — it wraps
+the reader and surfaces `*http.MaxBytesError` on the read that crosses
+the limit, usually mid-decode.
 
 1. **Method gate.** Only `POST` on `/api/v1/calculations`.
 2. **Content-Type gate.** Must be `application/json`, ignoring valid
    parameters; missing/other types → `415 unsupported_media_type`.
-3. **Body-size gate.** Requests larger than **16 KiB** are rejected
-   with `413 payload_too_large` (`http.MaxBytesReader`).
+3. **Body-size gate.** Requests **strictly greater than 16 384 bytes**
+   are rejected with `413 payload_too_large` (`http.MaxBytesReader`
+   permits exactly 16 384 bytes; only the 16 385th byte triggers
+   rejection).
 4. **Single JSON value.** The body must be exactly one complete JSON
    value. Trailing data → `400 invalid_json`.
 5. **Strict JSON decoding.** `json.Decoder.DisallowUnknownFields()` is
    enabled; unknown top-level or nested fields → `400 invalid_request`.
 6. **Duplicate members.** Standard Go `encoding/json` behavior is
    accepted (last value wins). No custom duplicate-member parser.
-7. **Well-formed JSON.** Parse errors → `400 invalid_json`.
-8. **Schema-shape check.** Missing/wrong-typed required fields, wrong
-   operand element types (string, `null`, array, etc.), or non-finite
-   operand values → `400 invalid_request`. (Non-finite is not
-   representable in JSON, so parsing already rejects it; this row
-   guards against clients that stringify `NaN`.)
+7. **Well-formed JSON.** Parse errors → `400 invalid_json`. This
+   includes any literal `NaN`, `Infinity`, or `-Infinity` token in the
+   body: those tokens are not defined by RFC 8259 §6, so
+   `encoding/json` returns `*json.SyntaxError` and the outcome is
+   `invalid_json`, never `invalid_request`.
+8. **Schema-shape check.** Missing/wrong-typed required fields, or
+   wrong operand element types — stringified non-finite values
+   (`"NaN"`, `"Infinity"`), `null`, booleans, arrays, objects, and
+   other wrong-typed operand elements — → `400 invalid_request`
+   (`*json.UnmarshalTypeError`). Literal non-finite JSON tokens are
+   handled by rule 7, not this rule.
 9. **Operation vocabulary.** Unknown `operation` value →
    `422 unsupported_operation`.
 10. **Arity check.** Operand count vs arity (§3) →
@@ -259,8 +329,8 @@ The HTTP boundary enforces these before the domain is invoked:
 
 | HTTP | `error.code`              | When                                                            |
 | ---- | ------------------------- | --------------------------------------------------------------- |
-| 400  | `invalid_json`            | Body is not one well-formed JSON value                          |
-| 400  | `invalid_request`         | Schema violation, unknown fields, wrong types, non-finite input |
+| 400  | `invalid_json`            | Body is not one well-formed JSON value, including any literal `NaN`/`Infinity`/`-Infinity` token rejected by the JSON parser |
+| 400  | `invalid_request`         | Schema violation, unknown fields, wrong operand types (including stringified `"NaN"`/`"Infinity"`)                          |
 | 404  | `not_found`               | Unknown path                                                    |
 | 405  | `method_not_allowed`      | Wrong method on a known path (`Allow` header set)               |
 | 413  | `payload_too_large`       | Body exceeds 16 KiB                                             |
@@ -324,6 +394,24 @@ merged.
   `DisallowUnknownFields`, and a "one value only" check
   (`decoder.More()` after decode must be false).
 - Never performs arithmetic; delegates to `internal/calculator`.
+- **Owns rendering of every `405 method_not_allowed` response.** The
+  Go 1.22 `net/http.ServeMux` emits a `text/plain` body via
+  `http.Error` for wrong-method matches, which violates §6.4 and §9.
+  The HTTP boundary must therefore intercept or pre-empt that default
+  so every `405` carries:
+  - `Content-Type: application/json; charset=utf-8`;
+  - `Cache-Control: no-store`;
+  - `Allow: <permitted method>` (`POST` for `/api/v1/calculations`,
+    `GET` for `/healthz`);
+  - the standard envelope
+    `{"error":{"code":"method_not_allowed","message":"<diagnostic English message>"}}`.
+  Acceptable implementations include explicit method dispatch,
+  explicit fallback handlers per known path, or a middleware that
+  intercepts the mux default. The contract does not prescribe a
+  particular technique, but the observable outcome above is mandatory.
+  The same discipline covers rendering of `404 not_found`, `413
+  payload_too_large`, `415 unsupported_media_type`, and every other
+  non-2xx response.
 
 ## 12. Server and local-development boundary
 
@@ -355,6 +443,12 @@ merged.
   - error-code union = the exact 12 codes in §8.
 - Parses API responses as `unknown` and narrows via hand-written
   runtime checks. Unknown additional response fields are tolerated.
+- **Unknown `error.code` fallback.** If a non-2xx response carries an
+  `error.code` outside the 12 codes in §8, the narrower falls back to
+  a stable local code (`internal_error`) while preserving the
+  received string in a `rawCode` field for diagnostic reporting.
+  Unknown-code responses are never silently coerced without
+  preservation.
 - No schema-validation dependency (`zod`, `io-ts`, etc.).
 - No client-side arithmetic to verify results.
 - Uses `AbortController`. **No automatic retries.** Manual retry is a
@@ -382,8 +476,29 @@ Interaction rules:
 - Input composition is a **frontend** responsibility. Arithmetic is
   not.
 - Pressing `=` sends exactly one request to `/api/v1/calculations`.
+- **Binary operator keys never trigger a backend request.** They only
+  update pending-operator state. Multi-step expressions such as
+  `1 + 2 + 3 =` are entered as two atomic submissions
+  (`1 + 2 =` → `+ 3 =`); the frontend never parses or reduces
+  compound expressions locally.
+- Pressing a binary operator while one is already pending — before any
+  digit of the second operand has been entered — **replaces** the
+  pending operator. No request is issued.
 - The result of a successful request becomes the first operand of the
-  next atomic request (chaining).
+  next atomic request (chaining). Pressing `√` after a successful
+  result seeds that result as the operand of the next unary
+  submission.
+- **Unary `√` is a top-level operation.** If pressed while a binary
+  operator is pending, `√` supersedes it: the second operand entry
+  (if any) is discarded and the next `=` submits the unary
+  calculation on the visible operand. There is no combined
+  "binary-then-unary" submission (for example `1 + 9 √` is not a
+  single request).
+- **`±` operates on the input buffer only.** It flips a leading `-` on
+  the digits being composed. It does not modify a backend-owned
+  result; to negate a previous result the user must clear or start a
+  new atomic submission (for example `result × -1 =`). This preserves
+  the "no client-side arithmetic" rule.
 - Free-form expressions, parentheses, precedence parsing, repeated-`=`
   replay, contextual `%` behavior, and history are **out of scope**.
 - Square root uses the same equals-driven atomic submission lifecycle
@@ -409,7 +524,9 @@ Interaction rules:
 
 ### 16.1 Submission
 
-- Exactly one request per `=`.
+- Exactly one request per `=`. Binary operator keys, `±`, digit keys,
+  the decimal key, `⌫`, and `C` never trigger a backend request; only
+  `=` (or its keyboard equivalent) does.
 - The UI shows a pending state; controls remain operable enough for
   cancellation and clear.
 - A local monotonically increasing sequence token is captured with
@@ -423,13 +540,26 @@ Interaction rules:
 
 ### 16.3 Failure
 
-- **Retryable** (network failure, `500 internal_error`): a manual
+Failures fall into three retryability classes:
+
+- **Retryable** — network failure and `500 internal_error`. A manual
   Retry affordance is shown. There is no automatic retry.
-- **Domain failure** (`422 …`, `400 invalid_request`, `413`, `415`,
-  `405`, `404`): shown as a localized message keyed by
-  `error.code`. Retry is not offered because the inputs must change.
+- **User-fixable** — `422 …` (`unsupported_operation`,
+  `invalid_operands`, `division_by_zero`, `math_domain`,
+  `numeric_overflow`) and `400 invalid_request`. Shown as a localized
+  message keyed by `error.code`. Retry is not offered because the
+  inputs must change; the user corrects operands or operation and
+  submits again.
+- **Non-retryable protocol/configuration** — `400 invalid_json`,
+  `404 not_found`, `405 method_not_allowed`, `413 payload_too_large`,
+  `415 unsupported_media_type`. These indicate a frontend bug or a
+  deployment misconfiguration and cannot be resolved from the
+  physical-calculator UI. They are surfaced as a generic
+  non-retryable diagnostic ("The request could not be processed.
+  Please refresh the app.") without a Retry action; no per-code
+  operand-correction affordance is shown.
 - Failed submissions preserve the inputs so the user can correct and
-  resubmit.
+  resubmit whenever the failure class permits it.
 
 ### 16.4 Cancellation and staleness
 

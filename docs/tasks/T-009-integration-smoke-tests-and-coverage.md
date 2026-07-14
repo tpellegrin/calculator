@@ -79,7 +79,8 @@ Not permitted:
 
 1. Integration test (Go, tag `integration`):
    - starts `httptest.NewServer(httpapi.NewHandler(...))`;
-   - hits `GET /healthz` and asserts `200`;
+   - hits `GET /healthz` and asserts `200` **and body exactly
+     `{"status":"ok"}`** (contract §6.1);
    - hits `POST /api/v1/calculations` with `{"operation":"divide","operands":[10,4]}`
      and asserts `200` + `result==2.5`;
    - hits `POST /api/v1/calculations` with `{"operation":"divide","operands":[1,0]}`
@@ -89,7 +90,17 @@ Not permitted:
    (`invalid_json`, `invalid_request`, `unsupported_operation`,
    `invalid_operands`, `math_domain`, `numeric_overflow`,
    `payload_too_large`, `unsupported_media_type`,
-   `method_not_allowed`, `not_found`).
+   `method_not_allowed`, `not_found`). The `invalid_json`
+   representative **must** include one case that submits a body
+   containing a literal `NaN` token (unquoted) and asserts
+   `400 invalid_json` (contract §5.2, §7 rule 7). The
+   `invalid_request` representative must use a wrong-typed operand
+   element such as a stringified `"NaN"` or a `null` operand and
+   assert `400 invalid_request` (contract §7 rule 8). Every non-2xx
+   response asserted here must also carry the JSON envelope
+   (`Content-Type: application/json; charset=utf-8`,
+   `Cache-Control: no-store`), including the `405` and `404` cases
+   (contract §11).
 3. Coverage:
    - Go: add `make coverage-api` (or equivalent
      `apps/api/Makefile` target) that runs

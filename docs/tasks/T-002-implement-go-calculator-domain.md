@@ -1,6 +1,6 @@
 # T-002 — Implement the Go calculator arithmetic domain
 
-- **Status**: Draft (must not move to Ready until T-001 independent reviews are reconciled)
+- **Status**: Ready (T-001 independent reviews reconciled 2026-07-14; contract corrections landed)
 - **Depends on**: T-001 (accepted contract; independent reviews reconciled)
 - **Owner**: Thiago (implementer TBD)
 
@@ -105,12 +105,38 @@ Not permitted:
      (defense-in-depth; the HTTP layer will typically reject these
      earlier);
    - per-operation math per contract §4;
-   - non-finite result classification:
-     - domain-undefined (e.g. `sqrt(-1)`, `power(-2, 0.5)`,
-       `power(0, -1)`) → `ErrMathDomain`;
-     - overflow of finite math (e.g. `1e200 * 1e200`, `power(10,
-       1000)`) → `ErrNumericOverflow`;
-   - successful zero result normalized to `+0`.
+   - **operation-specific domain guards run before invoking the
+     underlying floating-point operation.** In particular:
+     - `sqrt`: reject negative operands as `ErrMathDomain` before
+       calling `math.Sqrt`;
+     - `power`: apply the ordering from contract §4.5 — (a)
+       `base < 0` and non-integer exponent → `ErrMathDomain`;
+       (b) `base == 0` (positive or negative zero) and `exponent < 0`
+       → `ErrMathDomain`. Only after these guards may `math.Pow` be
+       invoked. This is required because `math.Pow(0, y)` for finite
+       `y < 0` returns `+Inf`, which would otherwise be misclassified
+       as `ErrNumericOverflow`.
+   - Only after the guards permit the call, non-finite result
+     classification applies:
+     - `+Inf`/`-Inf` from finite inputs (e.g. `1e200 * 1e200`,
+       `power(10, 1000)`) → `ErrNumericOverflow`;
+     - an unexpected `NaN` from an otherwise unguarded real-domain
+       case → `ErrMathDomain` (every known domain case must be
+       guarded explicitly above);
+   - **Integer-exponent predicate for `power`**: the exponent `y` is
+     integer iff `math.Trunc(y) == y` (equivalently
+     `math.Trunc(y) == y && !math.IsInf(y, 0)` given finite
+     operands). This is exact float64 classification, not
+     tolerance-based: `3.0` is integer; `3.0000000000000004` is not.
+     At magnitudes where binary64 cannot represent adjacent integers
+     (`|y| ≥ 2^53`), the represented value is still classified by
+     this predicate; the result remains subject to overflow checks.
+     This predicate is fixed by contract §4.5; T-002 must implement
+     it verbatim and must not substitute a tolerance-based test.
+   - successful zero result normalized to `+0` via
+     `NormalizeZero` (contract §5.4). Note IEEE-754 defines
+     `math.Sqrt(-0) = -0`; the successful sqrt-of-zero path must
+     therefore normalize before returning.
 5. Provide a helper `NormalizeZero(x float64) float64` (or equivalent)
    the HTTP layer can call for echoed operands.
 
@@ -145,10 +171,10 @@ modification:
 - `add([1e308, 1e308]) → ErrNumericOverflow`.
 - `power` with a very small negative exponent that yields subnormal
   but finite results is a success; the result is returned unchanged.
-- Integer-valued exponents that are represented inexactly as
-  `float64` are treated as integer when the value is
-  representationally integer (e.g. `2.0` is integer; `2.0000001` is
-  not). Document the exact test used.
+- Integer-valued exponents are classified by the predicate
+  `math.Trunc(y) == y` (contract §4.5). `2.0` is integer; the next
+  representable float64 above `2.0` is not. The test is fixed by the
+  contract; the implementer does not choose it.
 - `Calculate(OpAdd, nil)` and `Calculate(OpAdd, []float64{1})` →
   `ErrInvalidOperands`.
 - Unknown operation string → `ErrUnsupportedOperation`; empty string

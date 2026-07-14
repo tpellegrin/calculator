@@ -1,8 +1,12 @@
 # T-001 — Define calculator semantics and REST contract
-- **Status**: In Review (awaiting independent technical-contract review and independent frontend/product review against `docs/calculator-contract.md`; owner adjudication of consequential decisions completed in Stage 5; Stage 6 reconciliation and accepted contract authored)
+- **Status**: Implemented (both independent reviews completed; owner adjudication of review findings recorded below; accepted contract corrections applied 2026-07-14; awaiting fresh-context validation review)
 - **Depends on**: Monorepo foundation commit (`apps/web` frontend foundation, `apps/api` Go workspace boundary, `docs/` authorities).
 - **Owner**: Thiago
-- **Reviewer**: Two fresh-context reviewers (technical contract; frontend/product) — pending. See `docs/reviews/T-001-technical-contract-review-prompt.md` and `docs/reviews/T-001-frontend-product-review-prompt.md`.
+- **Reviewers**: Two fresh-context reviewers — completed. Reports:
+  `docs/reviews/T-001-technical-contract-review.md` and
+  `docs/reviews/T-001-frontend-product-review.md`. Owner adjudication
+  and reconciliation are recorded in the "Independent review
+  outcomes" section at the end of this file.
 
 ## Objective
 
@@ -2536,3 +2540,129 @@ T-001 is therefore **In Review** and must not be marked **Validated**,
 **Committed**, or **Delivered** until the two independent reviews have been
 performed against `docs/calculator-contract.md` and their findings
 adjudicated by Thiago.
+
+### Stage 7 — Independent-review reconciliation (2026-07-14)
+
+Both independent reviews were produced against the unchanged accepted
+contract and are preserved verbatim as immutable review evidence at:
+
+- `docs/reviews/T-001-technical-contract-review.md`
+  (Verdict: **PASS WITH REQUIRED CORRECTIONS**; 0 Blockers, 4 Major,
+  8 Minor).
+- `docs/reviews/T-001-frontend-product-review.md`
+  (Verdict: **PASS WITH REQUIRED CORRECTIONS**; 0 Blockers, 3 Major,
+  2 Minor).
+
+Owner adjudication and applied corrections are captured in the
+"Independent review outcomes" section below. The status transitions
+from **In Review** to **Implemented** on the basis that both reports
+now exist and every Blocker and Major finding has been adjudicated
+and, where accepted, applied to the accepted contract and to the
+affected downstream task specifications.
+
+## Independent review outcomes
+
+### Technical contract review
+
+- **Reviewer:** Fresh-context independent reviewer (Junie/Anthropic
+  Claude session, no participation in T-001 authoring or adjudication).
+  Full report: `docs/reviews/T-001-technical-contract-review.md`.
+- **Verdict:** PASS WITH REQUIRED CORRECTIONS.
+- **Blockers:** None.
+- **Major findings:** F-M1 (non-finite JSON classification), F-M2
+  (`power` classification ordering), F-M3 (integer-exponent
+  predicate), F-M4 (JSON 405 ownership).
+- **Minor findings:** F-m1 (`/healthz` body shape), F-m2 (state
+  `invalid_json` in §5.2), F-m3 (retryability split), F-m4 (§7 gate
+  ordering wording), F-m5 (zero-normalization ownership + `sqrt(-0)`),
+  F-m6 (16 KiB inclusive boundary), F-m7 (unknown `error.code`
+  fallback in §13), F-m8 (trailing-zero omission in §5.5).
+
+#### Finding adjudication
+
+| Finding | Severity | Decision | Rationale | Files changed |
+|---|---|---|---|---|
+| F-M1 non-finite JSON classification | Major | Accepted | Aligns §5.2, §7 rules 7–8, §8 table, T-003, T-009 with Stage-5 D04, RFC 8259 §6, and `encoding/json` behavior. Literal `NaN`/`Infinity`/`-Infinity` → `invalid_json`; wrong-typed operand elements including stringified non-finite → `invalid_request`. | `docs/calculator-contract.md`, `docs/tasks/T-003-implement-go-http-api.md`, `docs/tasks/T-009-integration-smoke-tests-and-coverage.md` |
+| F-M2 `power` classification ordering | Major | Accepted | Structural domain guards must run before `math.Pow`/`math.Sqrt`, because `math.Pow(0, y<0) == +Inf` would otherwise be mis-mapped to `numeric_overflow`. Ordering pinned in §4.3, §4.5, §5.2, and T-002. | `docs/calculator-contract.md`, `docs/tasks/T-002-implement-go-calculator-domain.md` |
+| F-M3 integer-exponent predicate | Major | Accepted | Fixed predicate `math.Trunc(y) == y` (equivalently `math.Trunc(y) == y && !math.IsInf(y, 0)` for finite operands). Exact float64 classification, not tolerance-based. Predicate is fixed by contract; T-002 no longer defers the choice. | `docs/calculator-contract.md`, `docs/tasks/T-002-implement-go-calculator-domain.md` |
+| F-M4 JSON 405 ownership | Major | Accepted | Go 1.22 `ServeMux` default 405 body is `text/plain`, violating §6.4/§9. §11 and T-003 step 5 now require the HTTP boundary to own every 405 body, headers, and `Allow`; technique is not prescribed. | `docs/calculator-contract.md`, `docs/tasks/T-003-implement-go-http-api.md` |
+| F-m1 pin `/healthz` body | Minor | Accepted | §6.1 pins exactly `{"status":"ok"}`; T-003 §4 and T-009 §1 assert it. Removes reliance on Stage-5 D19 alone. | `docs/calculator-contract.md`, `docs/tasks/T-003-implement-go-http-api.md`, `docs/tasks/T-009-integration-smoke-tests-and-coverage.md` |
+| F-m2 name `invalid_json` in §5.2 | Minor | Accepted | Closes the ambiguity locally without depending on §7 or §8. | `docs/calculator-contract.md` |
+| F-m3 retryability split | Minor | Accepted | §16.3 now splits Retryable, User-fixable, and Non-retryable protocol/configuration classes so T-006/T-007 have unambiguous copy hooks. | `docs/calculator-contract.md` |
+| F-m4 gate-ordering wording | Minor | Accepted | §7 preamble now states that rules 3–8 are enforced by one `json.Decoder` pipeline over `http.MaxBytesReader` and classified by returned error type. | `docs/calculator-contract.md` |
+| F-m5 zero-normalization ownership | Minor | Accepted | §5.4 now assigns `NormalizeZero` ownership to the domain and requires the HTTP layer to reuse it for both echoed operands and result, including `sqrt(-0)`. | `docs/calculator-contract.md` |
+| F-m6 16 KiB inclusive boundary | Minor | Accepted | §7 rule 3 restated as "strictly greater than 16 384 bytes". T-003 test wording ("16 KiB + 1") already agrees. | `docs/calculator-contract.md` |
+| F-m7 unknown `error.code` fallback | Minor | Accepted | §13 now documents the `internal_error` + `rawCode` fallback that T-005 was already implementing; §13 was silent. | `docs/calculator-contract.md` |
+| F-m8 trailing-zero omission | Minor | Accepted | §5.5 imports Stage-5 D07 clause: "Unnecessary trailing zeros are omitted." | `docs/calculator-contract.md` |
+
+### Frontend and product review
+
+- **Reviewer:** Junie (LLM-based autonomous reviewer, Gemini 3 Flash),
+  fresh-context independent review. Full report:
+  `docs/reviews/T-001-frontend-product-review.md`.
+- **Verdict:** PASS WITH REQUIRED CORRECTIONS.
+- **Blockers:** None.
+- **Major findings:** F-001 (unary `√` vs pending binary), F-002 (`±`
+  on backend results), F-003 (no request on binary operator press /
+  multi-step chaining).
+- **Minor findings:** F-004 (scientific-notation threshold), F-005
+  (locale-aware decimal keyboard mapping).
+
+Additional advisory content in the report (physical-calculator
+state-machine gaps, accessibility notes, localization notes,
+cross-document consistency notes) is treated as guidance for T-006 /
+T-007 authoring; it does not itself require contract edits and is not
+adjudicated line by line here.
+
+#### Finding adjudication
+
+| Finding | Severity | Decision | Rationale | Files changed |
+|---|---|---|---|---|
+| F-001 unary `√` vs pending binary | Major | Accepted | §14 now states that `√` is a top-level operation: pressing `√` while a binary operator is pending supersedes it (the second-operand entry, if any, is discarded); the next `=` submits the unary calculation. There is no combined "binary-then-unary" submission (`1 + 9 √` is not one request). This removes the ambiguity that would otherwise force T-006/T-007 to invent behavior. | `docs/calculator-contract.md` |
+| F-002 `±` on backend results | Accepted with modification | Accepted intent (`±` cannot be applied to backend results) — this preserves "no client-side arithmetic". Rejected the suggestion to add a `negate` backend operation (would enlarge the operation set the owner has frozen at seven and is not a product requirement). §14 now states that `±` operates on the input buffer only; to negate a previous result the user starts a new atomic submission (for example `result × -1 =`). Consistent with T-006 §122. | `docs/calculator-contract.md` |
+| F-003 multi-step chaining without intermediate `=` | Major | Accepted | §14 and §16.1 now explicitly state that binary operator keys never trigger a backend request, that only `=` (or its keyboard equivalent) does, and that `1 + 2 + 3 =` is entered as two atomic submissions. Removes the temptation for implementers to trigger requests on operator presses. | `docs/calculator-contract.md` |
+| F-004 scientific-notation threshold | Minor | Rejected | Reopens an accepted owner decision (Stage-5 D07): the threshold is intentionally left as a documented frontend implementation choice, not a contract constant, so that T-007 can tune it against real UI layout without a contract revision. The physical-calculator surface has one implementation, so a single documented value inside the calculator feature (contract §5.5, second bullet) is sufficient. | (none) |
+| F-005 map `.` and `,` to decimal | Minor | Deferred | Non-blocking for T-005/T-006/T-007. T-007 authoring may accept this as a UX improvement (map both `.` and `,` to the `decimal` action while displaying the locale-correct separator) without requiring a contract change. Recorded here as guidance; no contract edit required. | (none) |
+
+### Final reconciliation
+
+- **Unresolved blockers:** None. Neither review reported a Blocker.
+- **Intentional deferrals:**
+  - F-004 (scientific-notation threshold): rejected because it reopens
+    Stage-5 D07; the threshold remains a documented frontend
+    implementation choice within the calculator feature.
+  - F-005 (dual decimal-key mapping): deferred to T-007 authoring
+    discretion; no contract change.
+  - Frontend review's state-machine gaps, accessibility notes, and
+    localization notes: retained as guidance for T-006/T-007 rather
+    than promoted into the contract, because none of them exposes a
+    contradiction, technical impossibility, or accessibility failure
+    that would force downstream tasks to invent behavior.
+- **Contract readiness:** `docs/calculator-contract.md` now agrees
+  with the accepted adjudication. All seven operation identifiers,
+  arity, formulas, percentage semantics, `power` classification
+  ordering, integer-exponent predicate, negative-zero handling, the
+  full 12-code error vocabulary and their HTTP statuses, the JSON
+  envelope discipline (including 405), the 16 KiB boundary, the
+  physical-calculator interaction rules (unary/binary, `±`, multi-step
+  chaining), retryability classification, unknown-`error.code`
+  fallback, and `/healthz` body shape are pinned by the accepted
+  contract and consistent across downstream tasks.
+- **Downstream-task readiness:**
+  - T-002 (Go arithmetic domain): **Ready.** Contract semantics are
+    fully deterministic and match the corrections. Status transitioned
+    to Ready.
+  - T-003 (Go HTTP API): Draft — depends on T-002 being Implemented
+    per its own preamble; contract-level corrections have been
+    applied.
+  - T-004 (Server lifecycle): Draft — depends on T-002/T-003.
+  - T-005 (Frontend API integration): Draft — depends on T-003; the
+    unknown-`error.code` behavior is now aligned between §13 and
+    T-005 §Required implementation.
+  - T-006/T-007 (State model / UI): Draft — depends on the frontend
+    findings, which are now resolved in §14 and §16.
+  - T-008/T-009/T-010/T-012: Draft — dependency chains unchanged.
+- **Reviews unchanged.** Neither review report was modified. No
+  independent review was fabricated. No runtime or configuration file
+  was changed by this reconciliation. No new dependency was added. No
+  commit was created.

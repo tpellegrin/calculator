@@ -104,13 +104,41 @@ Not permitted:
       `invalid_operands`;
    8. echo `operation` and zero-normalized `operands` alongside
       `result`.
-4. Health handler: `GET` on `/healthz` returns `200 OK` with a small
-   JSON body such as `{"status":"ok"}`. `Allow: GET` on `405`.
+4. Health handler: `GET` on `/healthz` returns `200 OK` with exactly
+   the JSON body `{"status":"ok"}` (contract §6.1), and the standard
+   `Content-Type: application/json; charset=utf-8` and
+   `Cache-Control: no-store` headers. Wrong method → `405` with
+   `Allow: GET` and the JSON envelope (see step 5).
 5. Router:
    - `POST /api/v1/calculations` → calculation handler;
    - `GET  /healthz` → health handler;
    - other methods on known paths → `method_not_allowed` with `Allow`;
    - any other path → `not_found`.
+   The HTTP boundary **must own the body of every `405` response**.
+   Go 1.22's `net/http.ServeMux` handles wrong-method matches by
+   emitting a `text/plain` body via `http.Error`, which violates
+   contract §6.4 and §9. Do **not** rely on that default body.
+   Acceptable implementations include:
+   - explicit method dispatch inside each path handler that emits the
+     JSON envelope with `Allow` set;
+   - explicit fallback handlers registered per known path (for
+     example `mux.HandleFunc("/api/v1/calculations", ...)` doing its
+     own method switch, or a second registration for the disallowed
+     method that writes the envelope);
+   - a small middleware that wraps the mux and rewrites `405`
+     responses to the JSON envelope while preserving the mux's
+     `Allow` header.
+   Whichever technique is chosen, every `405` response must carry:
+   - `Content-Type: application/json; charset=utf-8`;
+   - `Cache-Control: no-store`;
+   - `Allow: POST` for `/api/v1/calculations`, `Allow: GET` for
+     `/healthz`;
+   - the envelope
+     `{"error":{"code":"method_not_allowed","message":"<diagnostic English message>"}}`.
+   The same envelope discipline applies to `404`, `413`, `415`, and
+   every other non-2xx response the HTTP boundary emits. Do not
+   prescribe a fragile body-rewriting technique unless necessary;
+   the observable outcome is what the tests check.
 6. Every response sets `Content-Type: application/json; charset=utf-8`
    and `Cache-Control: no-store`.
 7. Panic protection is left to T-004; handlers must not intentionally
@@ -128,8 +156,14 @@ Reproducible via `httptest`:
 - `sqrt([-1])` → `422`, code `math_domain`.
 - Empty body → `400`, code `invalid_json`.
 - Trailing data (`{...}{...}`) → `400`, code `invalid_json`.
+- Body containing a literal `NaN`, `Infinity`, or `-Infinity` token
+  (e.g. `{"operation":"add","operands":[NaN, 1]}`) → `400`, code
+  `invalid_json` (RFC 8259 §6; `encoding/json` returns
+  `*json.SyntaxError`).
 - Unknown field (`"foo":1`) → `400`, code `invalid_request`.
-- Wrong operand type (string, null) → `400`, code `invalid_request`.
+- Wrong operand type — stringified non-finite (`"NaN"`, `"Infinity"`),
+  `null`, boolean, array, object — → `400`, code `invalid_request`
+  (`*json.UnmarshalTypeError`).
 - Operand count mismatch → `422`, code `invalid_operands`.
 - Unknown `operation` → `422`, code `unsupported_operation`.
 - `Content-Type: text/plain` → `415`, code `unsupported_media_type`.
@@ -148,9 +182,14 @@ Reproducible via `httptest`:
 
 - Duplicate JSON keys: the last value wins (Go stdlib default);
   accepted and asserted in a test.
-- Non-finite JSON tokens (`NaN`, `Infinity`) are not valid JSON per
-  RFC 8259; `encoding/json` rejects them structurally, mapping to
-  `invalid_json`. Test with the literal string `NaN`.
+- Literal non-finite JSON tokens (`NaN`, `Infinity`, `-Infinity`) are
+  not valid JSON per RFC 8259 §6; `encoding/json` rejects them
+  structurally with `*json.SyntaxError`, mapping to `invalid_json`,
+  never `invalid_request`. Test with the literal token `NaN` in the
+  body (unquoted). Stringified non-finite values (`"NaN"`,
+  `"Infinity"`) decode successfully as strings and fail schema-shape
+  classification via `*json.UnmarshalTypeError` → `invalid_request`;
+  cover both.
 - `Content-Type: application/JSON` and
   `Content-Type: application/json; charset="utf-8"` must both be
   accepted (case-insensitive type, quoted parameters permitted).
