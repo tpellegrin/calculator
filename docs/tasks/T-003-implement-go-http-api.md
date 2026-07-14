@@ -1,6 +1,6 @@
 # T-003 — Implement the Go HTTP API
 
-- **Status**: Ready (T-002 is Implemented)
+- **Status**: Implemented
 - **Depends on**: T-001, T-002
 - **Owner**: Thiago (implementer TBD)
 
@@ -231,6 +231,17 @@ go build ./...
 
 ## Completion report
 
-- Files added; endpoints wired; status-mapping table completeness;
-  full test list; validation output; confirmation of no dependency
-  additions and no cross-package edits.
+- **Files added**: `internal/httpapi/errors.go`, `internal/httpapi/handler.go`, `internal/httpapi/handler_test.go`.
+- **Endpoints wired**: `POST /api/v1/calculations`, `GET /healthz`.
+- **Status-mapping table**: Implemented in `internal/httpapi/errors.go` covering all 12 contract codes.
+- **Validation**:
+  - `go test ./internal/httpapi/...`: PASS
+  - `go test -race ./internal/httpapi/...`: PASS
+  - `go vet ./...`: PASS
+  - `go build ./...`: PASS
+- **Scope confirmation**:
+  - No dependencies added.
+  - No changes to `internal/calculator` or `cmd/server`.
+  - Every 405 is JSON with `Allow` header.
+  - Body limit (16 KiB) and strict JSON decoding enforced.
+  - Zero normalization preserved.
