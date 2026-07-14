@@ -5,6 +5,8 @@
  * add its own domain error codes on top of `ApiError` (see `./README.md`).
  */
 
+import type { ApiErrorCode } from './types';
+
 export type ApiErrorKind =
   /** The request could not be sent (offline, DNS, TLS, etc.). */
   | 'network'
@@ -22,11 +24,19 @@ export class ApiError extends Error {
   readonly status?: number;
   readonly body?: unknown;
   readonly cause?: unknown;
+  readonly code?: ApiErrorCode;
+  readonly rawCode?: string;
 
   constructor(
     kind: ApiErrorKind,
     message: string,
-    options?: { status?: number; body?: unknown; cause?: unknown },
+    options?: {
+      status?: number;
+      body?: unknown;
+      cause?: unknown;
+      code?: ApiErrorCode;
+      rawCode?: string;
+    },
   ) {
     super(message);
     this.name = 'ApiError';
@@ -34,6 +44,11 @@ export class ApiError extends Error {
     this.status = options?.status;
     this.body = options?.body;
     this.cause = options?.cause;
+    this.code = options?.code;
+    this.rawCode = options?.rawCode;
+
+    // Fix prototype chain for custom error in some environments
+    Object.setPrototypeOf(this, ApiError.prototype);
   }
 }
 

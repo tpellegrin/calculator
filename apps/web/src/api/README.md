@@ -11,8 +11,12 @@ raw `fetch` in components.
 - `errors.ts` — `ApiError` class + `ApiErrorKind` union
   (`network | aborted | invalidResponse | apiError | unknown`) used by the
   UI to render failure states.
-- `types.ts` — transport-level types only (`HttpMethod`, `Json`,
-  `RequestOptions`). No calculator-specific types yet.
+- `calculator.ts` — typed calculator API integration that calls the Go REST
+  service (`POST /api/v1/calculations`). Implements §13 of the
+  [contract](../../../docs/calculator-contract.md).
+- `types.ts` — transport-level types (`HttpMethod`, `Json`,
+  `RequestOptions`) and calculator domain types (`Operation`,
+  `CalculationRequest`, `CalculationResponse`).
 
 ## Current state
 

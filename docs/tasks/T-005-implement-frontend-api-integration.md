@@ -1,6 +1,6 @@
 # T-005 — Implement frontend calculator API integration
 
-- **Status**: Ready
+- **Status**: Implemented (independent review completed 2026-07-14; see [`docs/reviews/T-005-frontend-calculator-api-review.md`](../reviews/T-005-frontend-calculator-api-review.md))
 - **Depends on**: T-001 (may run in parallel with T-002/T-003; runtime validation of shape parity requires T-003)
 - **Owner**: Thiago (implementer TBD)
 

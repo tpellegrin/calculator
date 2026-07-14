@@ -1,6 +1,6 @@
 # T-006 — Implement the physical-calculator state model
 
-- **Status**: Draft (blocked on T-001 reviews; T-005 recommended for shared types)
+- **Status**: Ready
 - **Depends on**: T-001, T-005
 - **Owner**: Thiago (implementer TBD)
 
