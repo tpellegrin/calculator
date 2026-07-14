@@ -1,0 +1,17 @@
+{
+  "app": {
+    "title": "Calculator",
+    "status": "Full-stack application foundation ready."
+  },
+  "errors": {
+    "generic": {
+      "title": "Something went wrong",
+      "description": "The application encountered an unexpected error."
+    }
+  },
+  "common": {
+    "actions": {
+      "tryAgain": "Try again"
+    }
+  }
+}

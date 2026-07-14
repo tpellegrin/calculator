@@ -1,0 +1,66 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  web:
+    name: Web (@calculator/web)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Validate
+        run: pnpm validate
+
+      - name: Build
+        run: pnpm build:web
+
+  api:
+    name: API (calculator/apps/api)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+          cache: false
+
+      - name: Check formatting
+        working-directory: apps/api
+        run: |
+          unformatted="$(gofmt -l .)"
+          if [ -n "$unformatted" ]; then
+            echo "The following Go files are not formatted:"
+            echo "$unformatted"
+            exit 1
+          fi
+
+      - name: go vet
+        working-directory: apps/api
+        run: go vet ./...
+
+      - name: go build
+        working-directory: apps/api
+        run: go build ./...
+
+      - name: go test
+        working-directory: apps/api
+        run: go test ./...

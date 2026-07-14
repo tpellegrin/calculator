@@ -1,0 +1,33 @@
+{
+  "name": "calculator",
+  "private": true,
+  "version": "0.1.0",
+  "license": "MIT",
+  "description": "Calculator — a full-stack application built with React, TypeScript, and Go.",
+  "engines": {
+    "node": ">=20"
+  },
+  "packageManager": "pnpm@9.15.9",
+  "scripts": {
+    "prepare": "husky install",
+    "lint:staged": "lint-staged",
+    "dev:web": "pnpm --filter @calculator/web start",
+    "build:web": "pnpm --filter @calculator/web build",
+    "test:web": "pnpm --filter @calculator/web test:run",
+    "lint:web": "pnpm --filter @calculator/web lint",
+    "lint:css:web": "pnpm --filter @calculator/web lint:css",
+    "typecheck:web": "pnpm --filter @calculator/web typecheck",
+    "format": "pnpm --filter @calculator/web format",
+    "format:check": "pnpm --filter @calculator/web format:check",
+    "i18n:check": "pnpm --filter @calculator/web i18n:check",
+    "validate:web": "pnpm --filter @calculator/web validate",
+    "validate": "pnpm validate:web"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^19.8.1",
+    "@commitlint/config-conventional": "^19.8.1",
+    "husky": "^8.0.0",
+    "lint-staged": "^16.1.5",
+    "prettier": "^3.6.2"
+  }
+}

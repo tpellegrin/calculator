@@ -1,0 +1,17 @@
+{
+  "app": {
+    "title": "Calculadora",
+    "status": "Base da aplicação full-stack pronta."
+  },
+  "errors": {
+    "generic": {
+      "title": "Algo deu errado",
+      "description": "O aplicativo encontrou um erro inesperado."
+    }
+  },
+  "common": {
+    "actions": {
+      "tryAgain": "Tentar novamente"
+    }
+  }
+}

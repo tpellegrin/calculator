@@ -1,0 +1,45 @@
+# Environment
+.env
+.env*.local
+ENV.marker
+
+# Dependencies
+node_modules
+.pnp
+.pnp.js
+
+# Build artifacts
+build
+dist
+storybook-static
+
+# Testing
+coverage
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+*.log
+
+# Vite / TypeScript caches
+.vite/
+.cache/
+*.tsbuildinfo
+
+# Go build artifacts
+apps/api/bin/
+apps/api/tmp/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea
+.vscode
+*.pem
+
+# Misc
+notes.md
