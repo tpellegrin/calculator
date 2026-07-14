@@ -1,6 +1,6 @@
 # T-003 — Implement the Go HTTP API
 
-- **Status**: Draft (must not move to Ready until T-001 independent reviews are reconciled and T-002 is Implemented)
+- **Status**: Ready (T-002 is Implemented)
 - **Depends on**: T-001, T-002
 - **Owner**: Thiago (implementer TBD)
 

@@ -1,6 +1,6 @@
 # T-002 — Implement the Go calculator arithmetic domain
 
-- **Status**: Ready (T-001 independent reviews reconciled 2026-07-14; contract corrections landed)
+- **Status**: Implemented (Self-verification complete 2026-07-14)
 - **Depends on**: T-001 (accepted contract; independent reviews reconciled)
 - **Owner**: Thiago (implementer TBD)
 
