@@ -12,11 +12,15 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 )
 
 func main() {
-	fmt.Fprintln(os.Stderr, "calculator api: not yet implemented — see apps/api/README.md")
-	os.Exit(0)
+	ctx := context.Background()
+	if err := Run(ctx, os.Stdout, os.Stderr, os.Getenv); err != nil {
+		fmt.Fprintf(os.Stderr, "server failed: %v\n", err)
+		os.Exit(1)
+	}
 }

@@ -2,13 +2,9 @@
 
 Go workspace for the Calculator HTTP API.
 
-This directory establishes the intended backend boundary. **No arithmetic
-domain and no HTTP transport are implemented yet.** The accepted contract
-that governs both layers is
-[`docs/calculator-contract.md`](../../docs/calculator-contract.md); the
-Go domain, HTTP boundary, and server lifecycle are authored as separate
-tasks under [`docs/tasks/`](../../docs/tasks/README.md) and follow the
-[delivery workflow](../../docs/delivery-workflow.md).
+This directory contains the Go implementation of the Calculator HTTP API.
+The implementation follows the accepted contract in
+[`docs/calculator-contract.md`](../../docs/calculator-contract.md).
 
 ## Module
 
@@ -25,7 +21,7 @@ once that path is known.
 ```
 apps/api/
 ├── cmd/
-│   └── server/          # HTTP server entry point (placeholder today)
+│   └── server/          # HTTP server entry point
 └── internal/
     ├── calculator/      # Pure arithmetic domain, no HTTP awareness
     └── httpapi/         # HTTP transport, decoding, encoding, status mapping
@@ -57,15 +53,26 @@ go test ./...
 # go fmt ./...
 ```
 
-The placeholder `cmd/server` binary compiles and exits with a message
-indicating that server implementation follows in the next task. It does
-not open a port, does not register handlers, and returns no canned
-responses.
+The `cmd/server` binary starts the HTTP API server. It reads `PORT` from
+the environment (default `8080`), composes the `httpapi` handlers, and
+performs graceful shutdown on `SIGINT`/`SIGTERM`.
+
+## Running
+
+From `apps/api/`:
+
+```bash
+go run ./cmd/server
+```
+
+### Configuration
+
+| Variable | Default | Description                       |
+| -------- | ------- | --------------------------------- |
+| `PORT`   | `8080`  | TCP port to listen on (1–65535).  |
 
 ## Not present yet
 
-- HTTP endpoints
-- Arithmetic implementation
 - Persistence (no database is planned)
 - Authentication (no auth is planned)
 - Runtime fake responses

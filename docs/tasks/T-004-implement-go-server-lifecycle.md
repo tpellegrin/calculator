@@ -1,6 +1,6 @@
 # T-004 — Implement the Go server lifecycle
 
-- **Status**: Ready (T-003 is Implemented)
+- **Status**: Implemented
 - **Depends on**: T-001, T-002, T-003
 - **Owner**: Thiago (implementer TBD)
 

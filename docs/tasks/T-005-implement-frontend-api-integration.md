@@ -1,6 +1,6 @@
 # T-005 — Implement frontend calculator API integration
 
-- **Status**: Draft (blocked on T-001 reviews)
+- **Status**: Ready
 - **Depends on**: T-001 (may run in parallel with T-002/T-003; runtime validation of shape parity requires T-003)
 - **Owner**: Thiago (implementer TBD)
 
