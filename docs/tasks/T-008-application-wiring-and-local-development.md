@@ -1,6 +1,6 @@
 # T-008 — Application wiring and local development
 
-- **Status**: Draft (blocked on T-001 reviews, T-004, T-007)
+- **Status**: Ready
 - **Depends on**: T-001, T-004 (runnable backend), T-005, T-006, T-007
 - **Owner**: Thiago (implementer TBD)
 

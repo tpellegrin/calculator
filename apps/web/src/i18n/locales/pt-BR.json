@@ -34,7 +34,8 @@
       "clear": "Limpar",
       "backspace": "Apagar",
       "decimal": "Separador decimal",
-      "signToggle": "Alternar sinal"
+      "signToggle": "Alternar sinal",
+      "retry": "Repetir"
     },
     "status": {
       "loading": "Calculando...",

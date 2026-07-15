@@ -79,10 +79,13 @@ export function reducer(state: State, action: Action): State {
       return INITIAL_STATE;
 
     case 'calculationStarted': {
-      // Only meaningful from a composing state. If dispatched from any
-      // other state (e.g., during a race), keep the current state.
-      if (!isComposing(state)) return state;
-      return { type: 'submitting', previousState: state };
+      if (isComposing(state)) {
+        return { type: 'submitting', previousState: state };
+      }
+      if (state.type === 'retryableFailure') {
+        return { type: 'submitting', previousState: state.previousState };
+      }
+      return state;
     }
 
     case 'calculationSucceeded':

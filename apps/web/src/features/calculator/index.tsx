@@ -1,164 +1,129 @@
 /**
- * `Calculator` — thin presentation and composition layer.
+ * `Calculator` — physical-calculator feature composition.
  *
- * Responsibilities intentionally limited to:
- *   - describing the calculator landmark, display, keypad, and status regions;
- *   - obtaining translated labels via `useI18n`;
- *   - delegating all state and orchestration to `useCalculator`;
- *   - mapping declarative `KEYPAD` metadata to native buttons;
- *   - forwarding physical-keyboard events through the pure
- *     `keyboardEventToCommand` mapper.
+ * This file is intentionally small. It reads as a description of what the
+ * feature is made of, not as a description of what the calculator does.
  *
- * No state-machine transitions, request construction, formatting, or
- * error classification live in this file — those responsibilities are
- * exclusively owned by `state/logic.ts` and `state/useCalculator.ts`.
+ * Responsibilities:
+ *
+ *   - consume the accepted T-006 public state API (`useCalculator`);
+ *   - obtain the localization function and active locale;
+ *   - connect the T-007 keyboard adapter to the feature root;
+ *   - compose `Display`, `Keypad`, `StatusRegion`, `PreviousResult`;
+ *   - expose the calculator's named region for T-008 mounting.
+ *
+ * It does not:
+ *
+ *   - own calculator state, transitions, or async orchestration (T-006);
+ *   - interpret keyboard events itself (see `hooks/useCalculatorKeyboard`);
+ *   - format numbers (see `presentation/formatNumber`);
+ *   - map error codes (see `presentation/errorPresentation`);
+ *   - declare substantial styled components (see `styles`).
  */
-import React, { useCallback, useEffect } from 'react';
+import React from 'react';
 
-import { Button } from 'components/Button';
-import type { I18nKey } from 'i18n';
 import { useI18n } from 'i18n/provider';
 
-import { KEYPAD, type KeypadEntry } from './state/constants';
-import {
-  decimalSeparatorFor,
-  keyboardEventToCommand,
-  mapErrorToI18nKey,
-} from './state/logic';
-import { useCalculator, type CalculatorApi } from './state/useCalculator';
-import {
-  CalculatorRoot,
-  DisplayArea,
-  ErrorText,
-  KeypadGrid,
-  LoadingText,
-  MainDisplay,
-  PreviousResultText,
-  RetryRow,
-  StatusArea,
-} from './styles';
+import { useCalculator } from './state/useCalculator';
+import { useCalculatorKeyboard } from './hooks/useCalculatorKeyboard';
+import { errorToI18nKey } from './presentation/errorPresentation';
+import { selectDisplayString } from './presentation/displayModel';
+import { Display } from './Display';
+import { Keypad } from './Keypad';
+import { PreviousResult } from './PreviousResult';
+import { StatusRegion } from './StatusRegion';
+import { CalculatorRoot, DisplayArea } from './styles';
+import type { KeypadCommand } from './state/constants';
 
 export const Calculator: React.FC = () => {
   const { t, lang } = useI18n();
   const calculator = useCalculator({ locale: lang });
-  const { displayValue, previousResult, status, errorKey, canRetry, retry } =
-    calculator;
+  const {
+    state,
+    previousResult,
+    status,
+    errorKey,
+    canRetry,
+    pressDigit,
+    pressDecimal,
+    toggleSign,
+    pressBackspace,
+    selectOperation,
+    pressUnarySqrt,
+    submit,
+    retry,
+    clear,
+  } = calculator;
 
-  const decimalSeparator = decimalSeparatorFor(lang);
-
-  const dispatchCommand = useCallback(
-    (
-      command: KeypadEntry['command'],
-      api: CalculatorApi = calculator,
-    ): void => {
-      switch (command.kind) {
-        case 'digit':
-          api.pressDigit(command.digit);
-          return;
-        case 'decimal':
-          api.pressDecimal();
-          return;
-        case 'signToggle':
-          api.toggleSign();
-          return;
-        case 'backspace':
-          api.pressBackspace();
-          return;
-        case 'clear':
-          api.clear();
-          return;
-        case 'operator':
-          api.selectOperation(command.op);
-          return;
-        case 'unarySqrt':
-          api.pressUnarySqrt();
-          return;
-        case 'equals':
-          api.submit();
-          return;
-      }
+  const handleKeyDown = useCalculatorKeyboard({
+    locale: lang,
+    canRetry,
+    dispatch: {
+      pressDigit,
+      pressDecimal,
+      pressBackspace,
+      selectOperation,
+      pressUnarySqrt,
+      submit,
+      retry,
+      clear,
     },
-    [calculator],
-  );
+  });
 
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      const command = keyboardEventToCommand(event, {
-        locale: lang,
-        canRetry,
-      });
-      if (command === null) return;
-      if (command.kind === 'retry') {
-        retry();
+  const errorI18nKey = errorToI18nKey(errorKey);
+
+  // Adapter converting a keypad's declarative `KeypadCommand` into a T-006
+  // hook method call. Kept inline because it is the minimum bridge between
+  // the metadata-driven keypad and the accepted T-006 command surface.
+  const handleKeypadCommand = (command: KeypadCommand): void => {
+    switch (command.kind) {
+      case 'digit':
+        pressDigit(command.digit);
         return;
-      }
-      // Every non-retry keyboard command aligns with a `KeypadEntry.command`.
-      dispatchCommand(command);
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [lang, canRetry, retry, dispatchCommand]);
-
-  const errorI18nKey = mapErrorToI18nKey(errorKey);
+      case 'decimal':
+        pressDecimal();
+        return;
+      case 'signToggle':
+        toggleSign();
+        return;
+      case 'backspace':
+        pressBackspace();
+        return;
+      case 'clear':
+        clear();
+        return;
+      case 'operator':
+        selectOperation(command.op);
+        return;
+      case 'unarySqrt':
+        pressUnarySqrt();
+        return;
+      case 'equals':
+        submit();
+        return;
+    }
+  };
 
   return (
-    <CalculatorRoot aria-label={t('calculator.title')}>
+    <CalculatorRoot
+      role="region"
+      aria-label={t('calculator.title')}
+      tabIndex={0}
+      onKeyDown={handleKeyDown}
+    >
       <DisplayArea>
-        <PreviousResultText aria-hidden={previousResult === null}>
-          {previousResult !== null &&
-            t('calculator.display.previous', { value: previousResult })}
-        </PreviousResultText>
-        <MainDisplay
-          role="status"
-          aria-live="polite"
-          aria-label={t('calculator.display.label')}
-        >
-          {displayValue}
-        </MainDisplay>
+        <PreviousResult value={previousResult} locale={lang} />
+        <Display value={selectDisplayString(state, lang)} />
       </DisplayArea>
 
-      <StatusArea>
-        {status === 'pending' && (
-          <LoadingText role="status" aria-live="polite">
-            {t('calculator.status.loading')}
-          </LoadingText>
-        )}
-        {status === 'domain-error' && errorI18nKey && (
-          <ErrorText role="alert" aria-live="assertive">
-            {t(errorI18nKey as I18nKey)}
-          </ErrorText>
-        )}
-        {status === 'retryable' && errorI18nKey && (
-          <RetryRow>
-            <ErrorText role="alert" aria-live="assertive">
-              {t(errorI18nKey as I18nKey)}
-            </ErrorText>
-            <Button
-              size="small"
-              variant="accent"
-              label={t('common.actions.tryAgain')}
-              onClick={retry}
-            />
-          </RetryRow>
-        )}
-      </StatusArea>
+      <StatusRegion
+        status={status}
+        errorI18nKey={errorI18nKey}
+        canRetry={canRetry}
+        onRetry={retry}
+      />
 
-      <KeypadGrid>
-        {KEYPAD.map((entry) => {
-          const symbol =
-            entry.id === 'decimal' ? decimalSeparator : (entry.symbol ?? '');
-          const ariaLabel = entry.labelKey ? t(entry.labelKey) : undefined;
-          return (
-            <Button
-              key={entry.id}
-              variant={entry.variant}
-              label={symbol}
-              aria-label={ariaLabel}
-              onClick={() => dispatchCommand(entry.command)}
-            />
-          );
-        })}
-      </KeypadGrid>
+      <Keypad locale={lang} onCommand={handleKeypadCommand} />
     </CalculatorRoot>
   );
 };

@@ -1,12 +1,13 @@
 import { screen, fireEvent, waitFor, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { Calculator } from './index';
-import { renderWithProviders } from '../../test/utils';
-import * as api from '../../api/calculator';
-import type { CalculationResponse } from '../../api/types';
 
-vi.mock('../../api/calculator', () => ({
+import { renderWithProviders } from 'test/utils';
+import * as api from 'api/calculator';
+import type { CalculationResponse } from 'api/types';
+import { Calculator } from './index';
+
+vi.mock('api/calculator', () => ({
   calculate: vi.fn(),
 }));
 
@@ -151,8 +152,10 @@ describe('Calculator component', () => {
   it('handles keyboard input', async () => {
     const user = userEvent.setup();
     renderWithProviders(<Calculator />);
+    const root = screen.getByRole('region');
     const display = screen.getByLabelText(/Calculator display/i);
 
+    root.focus();
     await user.keyboard('123');
     expect(display).toHaveTextContent('123');
 

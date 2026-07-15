@@ -34,7 +34,8 @@
       "clear": "Clear",
       "backspace": "Backspace",
       "decimal": "Decimal separator",
-      "signToggle": "Toggle sign"
+      "signToggle": "Toggle sign",
+      "retry": "Retry"
     },
     "status": {
       "loading": "Calculating...",
