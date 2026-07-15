@@ -8,7 +8,7 @@ import { base } from 'styles/themes/base';
 import { GlobalStyle } from 'styles/global';
 import { FontStyles } from 'styles/fonts';
 import { from } from 'styles/media';
-import { Calculator } from 'features/calculator';
+import { Calculator as CalculatorView } from 'features/calculator';
 
 /**
  * Root application composition.
@@ -43,7 +43,7 @@ const MainView = () => {
         <Text as="h1" variant="headingLg">
           {t('app.title')}
         </Text>
-        <Calculator />
+        <CalculatorView />
       </_Content>
     </_Main>
   );

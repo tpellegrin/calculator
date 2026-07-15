@@ -14,11 +14,12 @@ domain package rather than being repeated in the browser.
 
 ## Project status
 
-The repository structure, frontend foundation, and the accepted calculator
-contract are in place.
+The repository structure, frontend foundation, and the physical-calculator
+feature are in place.
 
 - The React application lives in `apps/web`.
 - The Go workspace lives in `apps/api`.
+- The physical-calculator feature lives in `apps/web/src/features/calculator/`.
 - The calculator semantics, REST contract, error taxonomy, and interaction
   model are defined in
   [`docs/calculator-contract.md`](./docs/calculator-contract.md).
@@ -30,7 +31,7 @@ contract are in place.
 
 ```text
 +-------------------------------+
-| React calculator feature      | apps/web/src/features/calculator/  (planned)
+| React calculator feature      | apps/web/src/features/calculator/
 | presentation and interaction  |
 +---------------+---------------+
                 |
@@ -42,12 +43,12 @@ contract are in place.
                 | HTTP
                 |
 +---------------v---------------+
-| Go HTTP layer                 | apps/api/internal/httpapi/  (planned)
+| Go HTTP layer                 | apps/api/internal/httpapi/
 | decoding, handlers, responses |
 +---------------+---------------+
                 |
 +---------------v---------------+
-| Calculator domain             | apps/api/internal/calculator/  (planned)
+| Calculator domain             | apps/api/internal/calculator/
 | arithmetic and validation     |
 +-------------------------------+
 ```
@@ -83,16 +84,40 @@ Install the JavaScript workspace dependencies from the repository root:
 pnpm install
 ```
 
-## Development
+## Local full-stack development
 
-Start the frontend development server:
+Start the backend Go server:
 
 ```bash
+# Terminal 1
+cd apps/api
+go run ./cmd/server
+```
+
+Start the frontend Vite development server:
+
+```bash
+# Terminal 2, from the repository root
 pnpm dev:web
 ```
 
-The Go server is not runnable yet. Its development command will be added when
-the HTTP service is implemented.
+- **Frontend URL:** `http://localhost:3000/` (proxies `/api` to the backend)
+- **Backend URL:** `http://localhost:8080/`
+
+### API Base URL Override
+
+By default, the frontend makes same-origin requests to `/api`, which are proxied to the local Go server during development. You can override the API base URL by setting `VITE_API_BASE_URL`:
+
+```bash
+VITE_API_BASE_URL=http://localhost:9090 pnpm dev:web
+```
+
+Overrides must include a scheme (e.g., `http://`). Malformed overrides without a scheme will cause the development server or build to fail loudly.
+
+### Network behavior
+
+- When the backend is unavailable, the calculator will show a network-failure state with a "Retry" option.
+- Domain errors (e.g., division by zero) are returned by the backend and displayed as localized messages.
 
 ## Validation
 
@@ -172,6 +197,3 @@ The full process is documented in
 
 The accepted contract is documented; runtime implementation is authored
 as tasks under [`docs/tasks/`](./docs/tasks/README.md).
-
-- Go HTTP server
-- React calculator interface
