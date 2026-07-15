@@ -19,6 +19,6 @@ describe('App', () => {
         name: /^calculator$/i,
       }),
     ).toBeInTheDocument();
-    expect(main).toHaveTextContent(/full-stack application foundation ready/i);
+    expect(screen.getByLabelText(/Calculator display/i)).toBeInTheDocument();
   });
 });

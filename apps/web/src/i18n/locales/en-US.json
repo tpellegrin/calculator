@@ -13,5 +13,50 @@
     "actions": {
       "tryAgain": "Try again"
     }
+  },
+  "calculator": {
+    "title": "Calculator",
+    "display": {
+      "label": "Calculator display",
+      "previous": "Previous result: {value}"
+    },
+    "operations": {
+      "add": "Add",
+      "subtract": "Subtract",
+      "multiply": "Multiply",
+      "divide": "Divide",
+      "power": "Power",
+      "sqrt": "Square root",
+      "percentage": "Percentage"
+    },
+    "controls": {
+      "equals": "Equals",
+      "clear": "Clear",
+      "backspace": "Backspace",
+      "decimal": "Decimal separator",
+      "signToggle": "Toggle sign"
+    },
+    "status": {
+      "loading": "Calculating...",
+      "result": "Result: {value}",
+      "error": "Error: {message}"
+    },
+    "errors": {
+      "invalid_json": "Invalid response format from server.",
+      "invalid_request": "The request was invalid.",
+      "unsupported_operation": "This operation is not supported.",
+      "invalid_operands": "Invalid operands for this operation.",
+      "division_by_zero": "Cannot divide by zero.",
+      "math_domain": "Mathematical domain error.",
+      "numeric_overflow": "The result is too large.",
+      "payload_too_large": "The request is too large.",
+      "unsupported_media_type": "Unsupported media type.",
+      "method_not_allowed": "Method not allowed.",
+      "not_found": "API endpoint not found.",
+      "internal_error": "Internal server error.",
+      "network": "Network error. Please check your connection.",
+      "invalidResponse": "The server returned an invalid response.",
+      "generic": "An unexpected error occurred. Please try again."
+    }
   }
 }

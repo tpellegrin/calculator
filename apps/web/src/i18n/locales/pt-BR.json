@@ -13,5 +13,50 @@
     "actions": {
       "tryAgain": "Tentar novamente"
     }
+  },
+  "calculator": {
+    "title": "Calculadora",
+    "display": {
+      "label": "Visor da calculadora",
+      "previous": "Resultado anterior: {value}"
+    },
+    "operations": {
+      "add": "Somar",
+      "subtract": "Subtrair",
+      "multiply": "Multiplicar",
+      "divide": "Dividir",
+      "power": "Potência",
+      "sqrt": "Raiz quadrada",
+      "percentage": "Porcentagem"
+    },
+    "controls": {
+      "equals": "Igual",
+      "clear": "Limpar",
+      "backspace": "Apagar",
+      "decimal": "Separador decimal",
+      "signToggle": "Alternar sinal"
+    },
+    "status": {
+      "loading": "Calculando...",
+      "result": "Resultado: {value}",
+      "error": "Erro: {message}"
+    },
+    "errors": {
+      "invalid_json": "Formato de resposta inválido do servidor.",
+      "invalid_request": "A requisição foi inválida.",
+      "unsupported_operation": "Esta operação não é suportada.",
+      "invalid_operands": "Operandos inválidos para esta operação.",
+      "division_by_zero": "Não é possível dividir por zero.",
+      "math_domain": "Erro de domínio matemático.",
+      "numeric_overflow": "O resultado é muito grande.",
+      "payload_too_large": "A requisição é muito grande.",
+      "unsupported_media_type": "Tipo de mídia não suportado.",
+      "method_not_allowed": "Método não permitido.",
+      "not_found": "Endpoint da API não encontrado.",
+      "internal_error": "Erro interno do servidor.",
+      "network": "Erro de rede. Verifique sua conexão.",
+      "invalidResponse": "O servidor retornou uma resposta inválida.",
+      "generic": "Ocorreu um erro inesperado. Tente novamente."
+    }
   }
 }

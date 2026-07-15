@@ -8,6 +8,7 @@ import { base } from 'styles/themes/base';
 import { GlobalStyle } from 'styles/global';
 import { FontStyles } from 'styles/fonts';
 import { from } from 'styles/media';
+import { Calculator } from 'features/calculator';
 
 /**
  * Root application composition.
@@ -27,24 +28,22 @@ export const App = () => (
     <FontStyles />
     <I18nProvider>
       <ErrorBoundary>
-        <PlaceholderView />
+        <MainView />
       </ErrorBoundary>
     </I18nProvider>
   </ThemeProvider>
 );
 
-const PlaceholderView = () => {
+const MainView = () => {
   const { t } = useI18n();
 
   return (
     <_Main>
-      <_Content direction="column" gap="md" alignItems="flex-start">
+      <_Content direction="column" gap="lg" alignItems="center">
         <Text as="h1" variant="headingLg">
           {t('app.title')}
         </Text>
-        <Text as="p" variant="bodyMd">
-          {t('app.status')}
-        </Text>
+        <Calculator />
       </_Content>
     </_Main>
   );

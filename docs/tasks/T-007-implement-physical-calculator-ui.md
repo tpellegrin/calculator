@@ -1,6 +1,6 @@
 # T-007 — Implement the physical-calculator UI
 
-- **Status**: Draft (blocked on T-001 reviews and T-006)
+- **Status**: Ready
 - **Depends on**: T-001, T-006 (uses the state model), T-005 (types)
 - **Owner**: Thiago (implementer TBD)
 
