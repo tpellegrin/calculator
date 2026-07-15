@@ -144,6 +144,16 @@ path) with:
 
 See [`../apps/api/README.md`](../apps/api/README.md).
 
+## Packaging
+
+The repository provides an optional single-image Docker packaging.
+
+- **Topology**: One process, one origin.
+- **Implementation**: The Go server optionally serves frontend static assets when `STATIC_DIR` is configured.
+- **Isolation**: Static serving is additive and gated; ordinary local API development remains unchanged.
+
+See [docs/docker.md](./docker.md).
+
 ## Testing
 
 - Vitest + Testing Library on the frontend.

@@ -255,7 +255,7 @@ For more details, see:
 
 - **Floating-point**: The calculator uses IEEE-754 `float64` (binary64). Results are subject to standard floating-point precision limitations.
 - **Non-monetary**: This application is not suitable for monetary, accounting, or ledger-based calculations requiring exact decimal precision.
-- **Docker**: Docker packaging is currently optional/future and is not required for local development.
+- **Docker**: Optional Docker packaging is available for single-origin production-like deployments. See [docs/docker.md](./docs/docker.md).
 
 ## AI prompt disclosure
 
@@ -265,6 +265,7 @@ See [docs/ai-usage.md](./docs/ai-usage.md).
 
 ## Documentation index
 
+- [Optional Docker Packaging](./docs/docker.md) — Build and run the application using Docker.
 - [Calculator Contract](./docs/calculator-contract.md) — Authoritative API behavior and semantics.
 - [Architecture](./docs/architecture.md) — System design and repository layout.
 - [Implementation Guide](./docs/implementation-guide.md) — How to extend the project.

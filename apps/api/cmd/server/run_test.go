@@ -93,7 +93,7 @@ func TestRunWithListener_GracefulShutdownOnCancel(t *testing.T) {
 
 	done := make(chan error, 1)
 	go func() {
-		done <- runWithListener(ctx, io.Discard, ln)
+		done <- runWithListener(ctx, io.Discard, ln, "")
 	}()
 
 	url := "http://" + ln.Addr().String() + "/healthz"
@@ -157,7 +157,7 @@ func TestRunWithListener_ServeErrorClosesLifecycle(t *testing.T) {
 	ctx := context.Background()
 	done := make(chan error, 1)
 	go func() {
-		done <- runWithListener(ctx, io.Discard, ln)
+		done <- runWithListener(ctx, io.Discard, ln, "")
 	}()
 
 	// Close the underlying listener to force Serve to return a
@@ -199,7 +199,7 @@ func TestRunWithListener_PreCancelledContext(t *testing.T) {
 
 	done := make(chan error, 1)
 	go func() {
-		done <- runWithListener(ctx, io.Discard, ln)
+		done <- runWithListener(ctx, io.Discard, ln, "")
 	}()
 
 	select {

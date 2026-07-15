@@ -1,0 +1,11 @@
+services:
+  calculator:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: calculator:latest
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+      - STATIC_DIR=/app/web

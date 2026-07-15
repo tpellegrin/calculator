@@ -21,7 +21,8 @@ import (
 
 // Config holds the server runtime configuration.
 type Config struct {
-	Port string
+	Port      string
+	StaticDir string
 }
 
 // Default timeouts as required by T-004.
@@ -54,7 +55,7 @@ func Run(ctx context.Context, stdout, stderr io.Writer, getenv func(string) stri
 		return fmt.Errorf("listen %q: %w", addr, err)
 	}
 
-	return runWithListener(ctx, stderr, ln)
+	return runWithListener(ctx, stderr, ln, cfg.StaticDir)
 }
 
 // runWithListener owns the http.Server lifecycle for an already-bound
@@ -63,10 +64,15 @@ func Run(ctx context.Context, stdout, stderr io.Writer, getenv func(string) stri
 //
 // Listener ownership: once runWithListener is called, it owns ln and
 // will close it (via http.Server.Serve / Shutdown).
-func runWithListener(ctx context.Context, stderr io.Writer, ln net.Listener) error {
+func runWithListener(ctx context.Context, stderr io.Writer, ln net.Listener, staticDir string) error {
 	logger := slog.New(slog.NewJSONHandler(stderr, nil))
 
-	handler := httpapi.NewHandler()
+	apiHandler := httpapi.NewHandler()
+	handler, err := withStaticServing(apiHandler, staticDir)
+	if err != nil {
+		return fmt.Errorf("static serving: %w", err)
+	}
+
 	handler = loggingMiddleware(logger, handler)
 	handler = recoveryMiddleware(logger, handler)
 
@@ -151,7 +157,8 @@ func loadConfig(getenv func(string) string) (Config, error) {
 	}
 
 	return Config{
-		Port: strconv.Itoa(port),
+		Port:      strconv.Itoa(port),
+		StaticDir: getenv("STATIC_DIR"),
 	}, nil
 }
 

@@ -1,0 +1,13 @@
+.git
+node_modules
+**/node_modules
+apps/web/dist
+apps/api/coverage.out
+coverage.out
+coverage
+**/coverage
+docs/
+.idea
+.vscode
+.DS_Store
+*.log
