@@ -114,3 +114,36 @@ Each meaningful AI-driven change must append an entry below.
     state pending those reviews.
 - **Non-compliance record**: none. No runtime code, no dependencies,
   no CI configuration, and no commits were produced by this entry.
+
+## T-002 — T-010 — Implementation, Review, and Documentation
+
+- **Date**: 2026-07-14
+- **Model/tool**: Claude / Gemini (via WebStorm Junie agent)
+- **Role**: implementation | review | repository audit
+- **Objective**: Full-stack implementation of the calculator arithmetic domain, HTTP API, frontend state model, physical-calculator UI, and final project documentation.
+- **Prompt**: A series of implementation prompts for tasks T-002 through T-010 (retained privately; following the established task sequence and the authoritative contract).
+- **Files changed or reviewed**:
+  - `apps/api/internal/calculator/**` (Domain implementation)
+  - `apps/api/internal/httpapi/**` (HTTP adapter and integration tests)
+  - `apps/api/cmd/server/**` (Server entry point)
+  - `apps/web/src/api/**` (Frontend API client)
+  - `apps/web/src/features/calculator/**` (State model and UI)
+  - `README.md`, `docs/architecture.md`, `docs/implementation-guide.md`, `docs/ai-usage.md` (Final reconciliation)
+- **Suggestions accepted**:
+  - All contract-first requirements for arithmetic edge cases and numeric policy.
+  - Layered architecture separating pure domain from transport and UI.
+  - Table-driven tests in Go and Vitest-based tests in the frontend.
+  - Use of `AbortController` and sequence tokens for request management.
+- **Suggestions modified**:
+  - Refined error presentation logic to distinguish between retryable and user-fixable errors.
+  - Adjusted Vite proxy configuration to support same-origin development.
+- **Suggestions rejected**:
+  - Proposals to introduce client-side arithmetic for operations owned by the API.
+  - Use of external schema validation libraries (per contract §22).
+  - Introduction of global state management libraries (kept minimal per architecture principles).
+- **Manual verification**:
+  - `pnpm validate` and `go test ./...` run and passed after every task.
+  - `go test -tags=integration ./...` verified against a live local server.
+  - Manual verification of the physical-calculator UI behavior and i18n parity.
+  - Full-stack local development workflow confirmed using the Vite proxy.
+- **Human ownership**: All architectural decisions and contract interpretations were adjudicated by the owner (Thiago). The AI acted as an implementer and reviewer within the boundaries defined by the authoritative docs.

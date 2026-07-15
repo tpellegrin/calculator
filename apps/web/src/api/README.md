@@ -20,16 +20,11 @@ raw `fetch` in components.
 
 ## Current state
 
-- The client is **transport-generic**. It has no calculator endpoints,
-  request shapes, response shapes, or server error codes.
-- The **calculator contract is accepted** at
-  [`docs/calculator-contract.md`](../../../../docs/calculator-contract.md).
-  Domain types (operations, operands, results, error taxonomy) will be
-  added by a downstream task alongside the first real endpoint call
-  (`POST /api/v1/calculations`).
-- Errors from any endpoint should normalize into application-owned types
-  built on top of `ApiError` — do not leak raw `Response` objects into UI
-  components.
+- The client is fully implemented with **calculator-specific types and
+  endpoints**.
+- It implements the [Calculator Contract](../../../../docs/calculator-contract.md).
+- Errors are normalized into application-owned types built on top of
+  `ApiError`, including specific handling for calculator error codes.
 
 ## Configuration
 
@@ -45,8 +40,8 @@ for tests and for a future Vite dev proxy.
 - Frontend tests should mock either the boundary (the module exporting
   the calculator API) or `fetch` on `globalThis`. Vitest's `vi.mock` and
   `vi.spyOn(globalThis, 'fetch')` are sufficient here.
-- Calculator-specific fixtures will live alongside the calculator API
-  module once it exists (e.g., `src/api/__fixtures__/calculator.ts`).
+- Calculator-specific fixtures live alongside the calculator API
+  module (e.g., `src/api/__fixtures__/calculator.ts`).
 - There is **no runtime fake REST server** in this repository, and none
   will be added. See
   [`../../../../docs/architecture.md`](../../../../docs/architecture.md#runtime-fake-backend--deliberately-not-added).

@@ -34,23 +34,12 @@ styled-components, an i18n message layer, an error boundary, and a neutral
 API client — everything needed to build a calculator UI on top without
 re-architecting anything.
 
-## Temporary statements
+## Contract
 
-A few conditions in this repository are **pre-implementation**, not defects:
-
-- `apps/web/src/features/` is empty. The calculator feature will live
-  there once the API contract lands.
-- The API layer is transport-only. There are no calculator operations,
-  request/response types, or server error codes yet.
-- The rendered UI is a semantic placeholder (`<main>` + a few text blocks).
-- The Go workspace under `apps/api` is a boundary placeholder only — no
-  arithmetic and no HTTP transport are implemented yet.
-
-The upcoming contract task will produce a decision artifact covering
-operation semantics, numeric policy, request/response shapes, error
-taxonomy, and the frontend/backend integration boundary. This document
-should gain a link to that artifact once it exists — no placeholder link
-is added now to avoid a broken reference.
+The calculator semantics, REST contract, and error taxonomy are frozen in
+[`docs/calculator-contract.md`](./calculator-contract.md). This document
+governs the Go arithmetic domain, the Go HTTP boundary, and the frontend
+API layer.
 
 ## Final architectural shape
 
@@ -153,20 +142,16 @@ Kept direct dependencies:
 
 No new dependencies were introduced.
 
-## Known constraints / deferred work
+## Known constraints
 
 - **Routing**: none. If a genuine second screen appears (e.g., a history
   page), reintroduce a router deliberately at that point.
 - **Data fetching**: no query cache. If several endpoints appear with
   distinct caching / retry / cancellation needs, revisit TanStack Query.
   For now, a typed client and focused custom hooks are more legible.
-- **API contract**: intentionally not defined yet. The
-  `docs/frontend-foundation.md` boundary ends here; the calculator API
-  contract (operations, payloads, error codes) is the next task.
-- **Feature layer**: `apps/web/src/features/` is empty. Calculator UI +
-  hooks live there once the contract lands.
-- **Backend workspace**: `apps/api/` establishes the Go module and
-  package boundaries but contains no runtime behavior yet.
+- **Numeric policy**: the system uses IEEE-754 `float64` and is not
+  suitable for monetary or ledger-based calculations requiring exact
+  decimal precision.
 
 ## Boundaries for subsequent tasks
 

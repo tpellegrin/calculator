@@ -1,8 +1,7 @@
 # Architecture
 
 Architecture of the **Calculator** repository. This document describes the
-current shape of the codebase and the intended target once the arithmetic
-contract and the Go REST service are implemented. See
+current shape of the codebase. See
 [`frontend-foundation.md`](./frontend-foundation.md) for the frontend
 adoption record.
 
@@ -22,39 +21,7 @@ No monorepo framework is in use (no Nx, Turborepo, Bazel, Rush, or Lerna).
 Root-level `package.json`, `pnpm-workspace.yaml`, CI, and later Docker
 Compose are sufficient at this scale.
 
-## Current state
-
-Implemented today:
-
-- Monorepo layout (`apps/web`, `apps/api`, `docs`).
-- React shell in `apps/web/src/containers/App.tsx` composing three
-  providers: `ThemeProvider` + global/font styles, `I18nProvider`, and
-  `ErrorBoundary`. No router, no data-fetching provider, no auth.
-- Transport-only frontend API client
-  (`apps/web/src/api/{client.ts,errors.ts,types.ts}`). No calculator
-  operations are wired up.
-- Reusable UI primitives in `apps/web/src/components/` (`Button`,
-  `ButtonBase`, `Box`, `Flex`, `Text`, `Form/Input`,
-  `LabeledInputField`, `ErrorBoundary`).
-- i18n layer with `en-US`, `pt-BR`, and a `pseudo` locale for
-  text-expansion checks.
-- Test setup with Vitest + Testing Library.
-- Repository-level validation (format, lint, stylelint, typecheck, i18n
-  parity, tests).
-- Go workspace boundary under `apps/api` — `go.mod`, package doc
-  comments in `internal/calculator` and `internal/httpapi`, and a
-  placeholder `cmd/server/main.go`.
-
-Not implemented yet:
-
-- The calculator UI feature (`apps/web/src/features/calculator/`).
-- Calculator API request/response types on the frontend.
-- The Go HTTP transport (`apps/api/internal/httpapi`).
-- The pure arithmetic domain (`apps/api/internal/calculator`).
-- Docker Compose orchestration.
-- End-to-end tests.
-
-## Target architecture
+## System Layout
 
 ```
 +-------------------------------+
@@ -125,8 +92,8 @@ types.
 2. `I18nProvider` — locale detection, persistence, and message lookup.
 3. `ErrorBoundary` — last-resort UI recovery.
 
-The rendered content is a semantic `<main>` placeholder. The calculator
-feature will replace it under `apps/web/src/features/calculator/`.
+The rendered content is the calculator feature mounted from
+`apps/web/src/features/calculator/`.
 
 ## Styling
 
@@ -160,8 +127,8 @@ feature will replace it under `apps/web/src/features/calculator/`.
   `network | aborted | invalidResponse | apiError | unknown`.
 
 There are no retries and no caching. Calculator-specific request/response
-types and the calculator API function will be added by a downstream task
-against the accepted contract in
+types and the calculator API function are implemented against the
+accepted contract in
 [`docs/calculator-contract.md`](./calculator-contract.md).
 
 ## Backend workspace
@@ -169,13 +136,11 @@ against the accepted contract in
 `apps/api/` is a Go module (`module calculator/apps/api`, temporary
 path) with:
 
-- `internal/calculator/` — planned pure arithmetic domain. No HTTP
-  types.
-- `internal/httpapi/` — planned transport layer (decoding, encoding,
-  status mapping, handler wiring). No arithmetic logic.
-- `cmd/server/main.go` — placeholder entry point that compiles and
-  exits with a clear message. It does not open a port and returns no
-  canned responses.
+- `internal/calculator/` — pure arithmetic domain. No HTTP types.
+- `internal/httpapi/` — transport layer (decoding, encoding, status
+  mapping, handler wiring). No arithmetic logic.
+- `cmd/server/main.go` — entry point that composes the handlers and
+  starts the HTTP server on `PORT`.
 
 See [`../apps/api/README.md`](../apps/api/README.md).
 
@@ -186,8 +151,8 @@ See [`../apps/api/README.md`](../apps/api/README.md).
   and a `renderWithProviders` helper.
 - `apps/web/src/containers/App.test.tsx` smoke-tests that the shell
   mounts and renders the placeholder inside a `<main>` landmark.
-- Go tests will live alongside their packages once implementation
-  begins.
+- Go tests live alongside their packages (`_test.go`).
+- Integration smoke tests verify the HTTP boundary using a real server.
 
 ## Runtime fake backend — deliberately not added
 

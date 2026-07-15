@@ -16,7 +16,7 @@ The module path is a temporary, clearly replaceable local name. It will
 be renamed to the real remote path (e.g., `github.com/<owner>/calculator/apps/api`)
 once that path is known.
 
-## Planned package boundaries
+## Package boundaries
 
 ```
 apps/api/
@@ -49,8 +49,24 @@ go vet ./...
 go build ./...
 go test ./...
 
+# Integration smoke tests
+go test -tags=integration ./...
+
 # To automatically fix formatting:
 # go fmt ./...
+```
+
+## Coverage
+
+To generate and view the coverage report:
+
+```bash
+# From repository root
+make coverage-api
+
+# Or from apps/api
+go test ./... -coverprofile=coverage.out
+go tool cover -func=coverage.out
 ```
 
 The `cmd/server` binary starts the HTTP API server. It reads `PORT` from
@@ -67,20 +83,10 @@ go run ./cmd/server
 
 ### Configuration
 
-| Variable | Default | Description                       |
-| -------- | ------- | --------------------------------- |
-| `PORT`   | `8080`  | TCP port to listen on (1–65535).  |
+| Variable | Default | Description                      |
+| -------- | ------- | -------------------------------- |
+| `PORT`   | `8080`  | TCP port to listen on (1–65535). |
 
-## Not present yet
+## Contract
 
-- Persistence (no database is planned)
-- Authentication (no auth is planned)
-- Runtime fake responses
-- Client SDKs generated from the API
-
-## Next tasks
-
-Runtime implementation is broken into three bounded tasks against the
-accepted contract: the Go arithmetic domain (`internal/calculator`), the
-Go HTTP boundary (`internal/httpapi`), and the server lifecycle
-(`cmd/server`). See [`docs/tasks/`](../../docs/tasks/README.md).
+The API implementation is governed by the [Calculator Contract](../../docs/calculator-contract.md).

@@ -1,205 +1,274 @@
 # Calculator
 
-A full-stack calculator built with React, TypeScript, and Go.
+A full-stack calculator monorepo featuring a React + TypeScript frontend and a Go HTTP API service.
 
-## About the project
+## Project overview
 
-The application is split into two parts:
+This project implements a physical-style calculator. The system is split into:
 
-- a React frontend responsible for the interface and user interaction;
-- a Go service responsible for arithmetic, validation, and API responses.
+- **Frontend**: A React application that manages the user interface, input composition, and display.
+- **Backend**: A Go service that performs all arithmetic, enforces the calculation contract, and validates requests.
 
-The frontend talks to the backend over HTTP. Calculation rules live in the Go
-domain package rather than being repeated in the browser.
-
-## Project status
-
-The repository structure, frontend foundation, and the physical-calculator
-feature are in place.
-
-- The React application lives in `apps/web`.
-- The Go workspace lives in `apps/api`.
-- The physical-calculator feature lives in `apps/web/src/features/calculator/`.
-- The calculator semantics, REST contract, error taxonomy, and interaction
-  model are defined in
-  [`docs/calculator-contract.md`](./docs/calculator-contract.md).
-- Runtime implementation of the calculator (Go domain, Go HTTP, frontend
-  feature) is authored as a sequence of tasks under
-  [`docs/tasks/`](./docs/tasks/README.md).
-
-## Architecture
-
-```text
-+-------------------------------+
-| React calculator feature      | apps/web/src/features/calculator/
-| presentation and interaction  |
-+---------------+---------------+
-                |
-+---------------v---------------+
-| Frontend API boundary         | apps/web/src/api/
-| requests, responses, errors   |
-+---------------+---------------+
-                |
-                | HTTP
-                |
-+---------------v---------------+
-| Go HTTP layer                 | apps/api/internal/httpapi/
-| decoding, handlers, responses |
-+---------------+---------------+
-                |
-+---------------v---------------+
-| Calculator domain             | apps/api/internal/calculator/
-| arithmetic and validation     |
-+-------------------------------+
-```
-
-Local development will use HTTP between the frontend and backend. HTTPS
-termination belongs to the deployment environment and is outside the
-application itself.
-
-## Repository structure
-
-```text
-calculator/
-├── apps/
-│   ├── web/              # React + TypeScript frontend
-│   └── api/              # Go API workspace
-├── docs/                 # Architecture and development documentation
-├── package.json          # Root workspace commands
-├── pnpm-workspace.yaml
-└── README.md
-```
+The backend arithmetic is authoritative. The frontend requests calculations through the HTTP API and does not perform any client-side arithmetic for the operations owned by the API. The relationship between the layers is governed by a strict, contract-first design.
 
 ## Requirements
 
-- Node.js 20 or newer
-- pnpm 9.15.9
-- Go 1.22
+The following versions are required to develop and run the project:
+
+- **Node.js**: `^20.0.0` or later.
+- **pnpm**: `9.15.9`.
+- **Go**: `1.22` or later.
+
+Corepack is recommended for managing the pnpm version:
+
+```bash
+corepack enable
+```
 
 ## Installation
 
-Install the JavaScript workspace dependencies from the repository root:
+From the repository root:
+
+1. Install Node.js dependencies:
+   ```bash
+   pnpm install
+   ```
+2. Go dependencies are resolved automatically by the Go toolchain during build or run.
+
+## Development
+
+The application requires both the frontend and backend to be running for full functionality.
+
+### Frontend
+
+Starts the Vite development server with hot-module replacement.
 
 ```bash
-pnpm install
+pnpm dev:web
 ```
 
-## Local full-stack development
+- **URL**: `http://localhost:3000`
+- **Proxy**: Vite is configured to proxy `/api` requests to `http://localhost:8080`.
 
-Start the backend Go server:
+### Backend
+
+Starts the Go HTTP server.
 
 ```bash
-# Terminal 1
 cd apps/api
 go run ./cmd/server
 ```
 
-Start the frontend Vite development server:
+- **Port**: `8080` (default, override with `PORT` environment variable).
+- **Health check**: `http://localhost:8080/healthz`.
+
+## Local full-stack development
+
+To run the complete application locally, use two terminal windows:
+
+**Terminal 1 (Backend)**:
 
 ```bash
-# Terminal 2, from the repository root
+cd apps/api
+go run ./cmd/server
+```
+
+**Terminal 2 (Frontend)**:
+
+```bash
 pnpm dev:web
 ```
 
-- **Frontend URL:** `http://localhost:3000/` (proxies `/api` to the backend)
-- **Backend URL:** `http://localhost:8080/`
+Navigate to `http://localhost:3000`. The frontend will communicate with the backend via the Vite development proxy.
 
-### API Base URL Override
+## API examples
 
-By default, the frontend makes same-origin requests to `/api`, which are proxied to the local Go server during development. You can override the API base URL by setting `VITE_API_BASE_URL`:
+The calculator API follows the contract defined in `docs/calculator-contract.md`.
 
-```bash
-VITE_API_BASE_URL=http://localhost:9090 pnpm dev:web
+### Successful calculation
+
+**Request**:
+
+```http
+POST /api/v1/calculations
+Content-Type: application/json
+
+{
+  "operation": "divide",
+  "operands": [10, 4]
+}
 ```
 
-Overrides must include a scheme (e.g., `http://`). Malformed overrides without a scheme will cause the development server or build to fail loudly.
+**Response**: `200 OK`
 
-### Network behavior
+```json
+{
+  "operation": "divide",
+  "operands": [10, 4],
+  "result": 2.5
+}
+```
 
-- When the backend is unavailable, the calculator will show a network-failure state with a "Retry" option.
-- Domain errors (e.g., division by zero) are returned by the backend and displayed as localized messages.
+### Request validation error
+
+**Request** (invalid operand type):
+
+```http
+POST /api/v1/calculations
+Content-Type: application/json
+
+{
+  "operation": "add",
+  "operands": ["1", 2]
+}
+```
+
+**Response**: `400 Bad Request`
+
+```json
+{
+  "error": {
+    "code": "invalid_request",
+    "message": "Request body does not match the expected schema."
+  }
+}
+```
+
+### Domain error
+
+**Request** (division by zero):
+
+```http
+POST /api/v1/calculations
+Content-Type: application/json
+
+{
+  "operation": "divide",
+  "operands": [1, 0]
+}
+```
+
+**Response**: `422 Unprocessable Entity`
+
+```json
+{
+  "error": {
+    "code": "division_by_zero",
+    "message": "Division by zero is not allowed."
+  }
+}
+```
+
+## Operation semantics
+
+The calculator supports the following operations:
+
+- **Addition**: `add([a, b])`
+- **Subtraction**: `subtract([a, b])`
+- **Multiplication**: `multiply([a, b])`
+- **Division**: `divide([a, b])`
+- **Power**: `power([base, exponent])`
+- **Square root**: `sqrt([x])`
+- **Percentage**: `percentage([base, rate])`
+
+The backend arithmetic is authoritative. For detailed semantics, edge-case rules, and numeric policies, see [docs/calculator-contract.md](./docs/calculator-contract.md).
+
+## Errors
+
+The API returns structured error envelopes with stable codes. Common errors include:
+
+- `division_by_zero` (`422`): Attempted to divide by zero.
+- `numeric_overflow` (`422`): The result exceeds the representable `float64` range.
+
+See the [authoritative contract](./docs/calculator-contract.md) for the complete list of error codes and their HTTP status mappings.
 
 ## Validation
 
-Run the frontend validation suite:
+The project includes a comprehensive validation suite for both frontend and backend.
+
+### Full-stack validation
+
+Runs all frontend checks (format, lint, types, tests).
 
 ```bash
 pnpm validate
 ```
 
-Build the frontend for production:
+### Backend validation
+
+From `apps/api/`:
 
 ```bash
-pnpm build:web
+go vet ./...      # Static analysis
+go build ./...    # Compilation
+go test ./...     # Unit tests
+go test -tags=integration ./...  # Integration smoke tests
 ```
 
-The same checks can be run directly against the frontend workspace:
+### Frontend validation
+
+From `apps/web/`:
 
 ```bash
-pnpm --filter @calculator/web validate
-pnpm --filter @calculator/web build
+pnpm lint         # ESLint
+pnpm lint:css     # Stylelint
+pnpm typecheck    # TypeScript
+pnpm test:run     # Unit tests
+pnpm i18n:check   # i18n parity check
 ```
 
-Validate the Go workspace from `apps/api`:
+## Coverage
 
-```bash
-test -z "$(gofmt -l .)"
-go vet ./...
-go test ./...
-go build ./...
-```
+Test coverage is reported for both workspaces. No repository-wide numeric threshold is enforced; coverage is behavioral and layer-specific.
 
-To format Go files:
-
-```bash
-go fmt ./...
-```
-
-Run the aggregate Go coverage report:
+### Backend coverage
 
 ```bash
 make coverage-api
 ```
 
-## Development workflow
+Reports total statement coverage for the Go packages.
 
-Work is divided into small, reviewable tasks. Each change is implemented,
-checked, reviewed, and validated before it is committed.
+### Frontend coverage
 
-```text
-Task → Implement → Verify → Review → Validate → Commit
+```bash
+pnpm coverage:web
 ```
 
-The full process is documented in
-[`docs/delivery-workflow.md`](./docs/delivery-workflow.md).
-
-## Documentation
-
-- [`docs/calculator-contract.md`](./docs/calculator-contract.md) - accepted
-  authority for calculator semantics and REST contract.
-- [`docs/architecture.md`](./docs/architecture.md) - current structure and
-  target architecture.
-- [`docs/frontend-foundation.md`](./docs/frontend-foundation.md) - decisions
-  made while preparing the frontend foundation.
-- [`docs/implementation-guide.md`](./docs/implementation-guide.md) - where
-  frontend and backend changes belong.
-- [`docs/delivery-workflow.md`](./docs/delivery-workflow.md) - task,
-  implementation, review, and delivery process.
-- [`docs/ai-usage.md`](./docs/ai-usage.md) - record of AI-assisted work and
-  prompts used.
-- [`apps/api/README.md`](./apps/api/README.md) - Go workspace overview.
+Generates a Vitest coverage report for the React application.
 
 ## Design notes
 
-- Arithmetic rules remain independent of HTTP.
-- The frontend uses the backend as the source of truth for calculations.
-- API errors will use a consistent, documented structure.
-- The application does not require a database or authentication.
-- Frontend tests may mock network responses, but local development will use
-  the real Go service.
-- New infrastructure should be added only when the application requires it.
+- **Backend-authoritative**: All arithmetic and validation logic is owned by the Go service to ensure consistency.
+- **Contract-first**: The API behavior is defined in a shared contract before implementation.
+- **Layered separation**: Clear boundaries between domain logic, transport adapters, and UI components.
+- **Same-origin development**: Vite proxies `/api` to the backend to simplify local development without CORS.
+- **i18n & Theming**: User-facing strings and visual tokens are managed centrally in the frontend.
 
-## Not implemented yet
+For more details, see:
 
-The accepted contract is documented; runtime implementation is authored
-as tasks under [`docs/tasks/`](./docs/tasks/README.md).
+- [docs/architecture.md](./docs/architecture.md)
+- [docs/calculator-contract.md](./docs/calculator-contract.md)
+- [docs/delivery-workflow.md](./docs/delivery-workflow.md)
+
+## Known limitations
+
+- **Floating-point**: The calculator uses IEEE-754 `float64` (binary64). Results are subject to standard floating-point precision limitations.
+- **Non-monetary**: This application is not suitable for monetary, accounting, or ledger-based calculations requiring exact decimal precision.
+- **Docker**: Docker packaging is currently optional/future and is not required for local development.
+
+## AI prompt disclosure
+
+This repository uses AI assistance for implementation, review, and documentation. All AI-assisted work is recorded and disclosed.
+
+See [docs/ai-usage.md](./docs/ai-usage.md).
+
+## Documentation index
+
+- [Calculator Contract](./docs/calculator-contract.md) — Authoritative API behavior and semantics.
+- [Architecture](./docs/architecture.md) — System design and repository layout.
+- [Implementation Guide](./docs/implementation-guide.md) — How to extend the project.
+- [Delivery Workflow](./docs/delivery-workflow.md) — Tasks, reviews, and completion process.
+- [AI Usage](./docs/ai-usage.md) — Disclosure and prompt log.
+- [Backend API README](./apps/api/README.md) — Go workspace details.
+- [Frontend API README](./apps/web/src/api/README.md) — Frontend network layer details.

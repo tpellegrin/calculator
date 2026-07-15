@@ -19,14 +19,12 @@ This is a lightweight pnpm monorepo:
 ## Current phase
 
 - Monorepo foundation established.
-- Frontend foundation complete and tailored (under `apps/web`).
-- Calculator API contract is **not yet frozen**.
-- Calculator UI is **not implemented**.
-- Go backend is a **boundary placeholder only** — no arithmetic, no
-  handlers, no runtime server.
+- Frontend foundation complete.
+- Calculator API contract is **frozen** ([`docs/calculator-contract.md`](./docs/calculator-contract.md)).
+- Calculator UI is **fully implemented**.
+- Go backend is **fully implemented** (arithmetic, handlers, server).
 
-Do not implement calculator behavior, the Go service, or a runtime fake
-backend until the contract task is complete.
+The system is in the final validation and delivery phase.
 
 ## Ownership boundaries
 
@@ -84,9 +82,10 @@ test -z "$(gofmt -l .)"
 go vet ./...
 go build ./...
 go test ./...
+go test -tags=integration ./...
 
-# To automatically fix formatting:
-# go fmt ./...
+# Coverage
+# make coverage-api (from root)
 ```
 
 ## Ways of working

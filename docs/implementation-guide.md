@@ -18,23 +18,25 @@ frozen in
 or changes to existing behavior require an explicit owner decision that
 updates that document **before** any code changes.
 
-Adding or changing calculator behavior is a **full-stack** change.
-Follow this sequence:
+Adding or changing calculator behavior is a **full-stack** change that flows through the system in this order:
 
-1. Update the accepted contract in
-   [`docs/calculator-contract.md`](./calculator-contract.md) (operation
-   identifier, arity, numeric policy, error taxonomy, examples).
-2. Update the Go domain in `apps/api/internal/calculator/` (pure
-   function + tests, no HTTP concerns).
-3. Update the HTTP mapping in `apps/api/internal/httpapi/` (request
-   decoding, response encoding, HTTP status mapping, error envelopes).
-4. Update the typed frontend API contract in `apps/web/src/api/`
-   (request/response types, error decoding).
-5. Update the React feature in `apps/web/src/features/calculator/`.
-6. Update tests on both sides (domain, transport, and user-level
-   interaction).
-7. Update documentation (README, `docs/architecture.md`, contract
-   document).
+1. **Contract**: Defines semantics, error codes, and examples in
+   [`docs/calculator-contract.md`](./calculator-contract.md).
+2. **Go Domain**: Implements the arithmetic and validation in
+   `apps/api/internal/calculator/`.
+3. **HTTP API**: Maps requests to the domain and errors to the contract in
+   `apps/api/internal/httpapi/`.
+4. **Server Composition**: Wires the handlers in `apps/api/cmd/server/`.
+5. **Frontend API Client**: Owns the transport and type boundary in
+   `apps/web/src/api/`.
+6. **State Model**: Orchestrates requests and UI state in
+   `apps/web/src/features/calculator/state/`.
+7. **UI Feature**: Consumes state and dispatches actions in
+   `apps/web/src/features/calculator/presentation/`.
+8. **App Shell**: Mounts the feature and Vite proxies `/api` in
+   `apps/web/src/containers/App.tsx`.
+9. **Integration Tests**: Verify the live handler contract in
+   `apps/api/internal/httpapi/integration_test.go`.
 
 Do not encode arithmetic for the new operation in the browser: the
 backend remains authoritative.
