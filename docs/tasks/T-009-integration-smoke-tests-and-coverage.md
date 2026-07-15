@@ -1,6 +1,6 @@
 # T-009 — Integration, smoke tests, and coverage
 
-- **Status**: Ready
+- **Status**: Implemented
 - **Depends on**: T-001, T-002, T-003, T-004, T-005, T-006, T-007, T-008
 - **Owner**: Thiago (implementer TBD)
 

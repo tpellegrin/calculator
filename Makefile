@@ -25,3 +25,7 @@ api-build:
 
 api-test:
 	cd apps/api && go test ./...
+
+coverage-api:
+	cd apps/api && go test ./... -coverprofile=coverage.out
+	cd apps/api && go tool cover -func=coverage.out | tail -n 1

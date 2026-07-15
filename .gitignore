@@ -15,6 +15,7 @@ storybook-static
 
 # Testing
 coverage
+*.out
 
 # Logs
 npm-debug.log*

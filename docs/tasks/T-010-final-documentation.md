@@ -1,6 +1,6 @@
 # T-010 — Final documentation
 
-- **Status**: Draft (blocked on T-001 reviews and T-008)
+- **Status**: Ready
 - **Depends on**: T-001, T-002, T-003, T-004, T-005, T-006, T-007, T-008, T-009
 - **Owner**: Thiago (implementer TBD)
 

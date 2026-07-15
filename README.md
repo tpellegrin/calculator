@@ -155,6 +155,12 @@ To format Go files:
 go fmt ./...
 ```
 
+Run the aggregate Go coverage report:
+
+```bash
+make coverage-api
+```
+
 ## Development workflow
 
 Work is divided into small, reviewable tasks. Each change is implemented,
